@@ -1,0 +1,179 @@
+﻿/* ============================================
+   ARTESANOS CONTROL - Estilos
+   Paleta: Verde oscuro + Rojo + Blanco
+   ============================================ */
+
+:root {
+    --artesanos-green: #1a4d3a;
+    --artesanos-red: #d42f2f;
+    --artesanos-white: #ffffff;
+    --artesanos-light: #f5f5f5;
+    --artesanos-gray: #888888;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+body.bg-artesanos {
+    background: #f8f8f8;
+    min-height: 100vh;
+}
+
+/* ============================================
+   LOGIN
+   ============================================ */
+
+.login-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #f8f8f8;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 480px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 50px 40px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.login-logo {
+    max-width: 220px;
+    height: auto;
+}
+
+.login-title {
+    color: var(--artesanos-green);
+    font-size: 2.2rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    margin-bottom: 40px;
+    margin-top: 10px;
+}
+
+/* ============================================
+   INPUTS
+   ============================================ */
+
+.input-group-custom {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.input-group-custom input {
+    width: 100%;
+    padding: 16px 50px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    color: #333;
+    background: #ffffff;
+    transition: all 0.15s ease;
+}
+
+.input-group-custom input:focus {
+    outline: none;
+    border-color: var(--artesanos-green);
+    box-shadow: 0 0 0 3px rgba(26, 77, 58, 0.1);
+}
+
+.input-group-custom input::placeholder {
+    color: #999;
+}
+
+.input-icon {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: #888;
+    pointer-events: none;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: #888;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.toggle-password:hover {
+    color: var(--artesanos-green);
+}
+
+/* ============================================
+   BOTON
+   ============================================ */
+
+.btn-login {
+    width: 100%;
+    padding: 16px;
+    margin-top: 12px;
+    background: var(--artesanos-green);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-login:hover {
+    background: #143d2e;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(26, 77, 58, 0.3);
+}
+
+/* ============================================
+   FORGOT PASSWORD
+   ============================================ */
+
+.forgot-password {
+    margin-top: 24px;
+    margin-bottom: 0;
+}
+
+.forgot-password a {
+    color: var(--artesanos-green);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.forgot-password a:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 576px) {
+    .login-container {
+        padding: 40px 24px;
+    }
+    .login-title {
+        font-size: 1.8rem;
+    }
+    .login-logo {
+        max-width: 180px;
+    }
+}

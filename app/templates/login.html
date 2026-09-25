@@ -1,0 +1,76 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Iniciar sesion - ARTESANOS CONTROL{% endblock %}
+{% block body_class %}bg-artesanos{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+
+    <div class="login-container">
+
+        <!-- Logo -->
+        <div class="text-center mb-4">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" 
+                 alt="Artesanos Pizzeria" 
+                 class="login-logo">
+        </div>
+
+        <!-- Titulo -->
+        <h1 class="login-title text-center">ARTESANOS<br>CONTROL</h1>
+
+        <!-- Mensajes flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formulario -->
+        <form method="POST" action="{{ url_for('auth.login') }}" class="login-form">
+
+            <div class="input-group-custom">
+                <i class="bi bi-person input-icon"></i>
+                <input type="text" name="usuario" placeholder="Usuario" required autofocus>
+            </div>
+
+            <div class="input-group-custom">
+                <i class="bi bi-lock input-icon"></i>
+                <input type="password" name="password" id="password" placeholder="Contrasena" required>
+                <i class="bi bi-eye toggle-password" onclick="togglePassword()"></i>
+            </div>
+
+            <button type="submit" class="btn-login">
+                Iniciar sesion
+            </button>
+
+        </form>
+
+        <p class="forgot-password text-center">
+            <a href="#">Olvidaste tu contrasena?</a>
+        </p>
+
+    </div>
+
+</div>
+
+<script>
+    function togglePassword() {
+        const input = document.getElementById('password');
+        const icon = event.target;
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        }
+    }
+</script>
+{% endblock %}

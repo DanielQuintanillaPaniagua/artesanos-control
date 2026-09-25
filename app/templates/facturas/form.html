@@ -1,0 +1,135 @@
+﻿@'
+{% extends "base.html" %}
+
+{% block title %}Registrar Factura - ARTESANOS CONTROL{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturas.css') }}">
+{% endblock %}
+
+{% block body_content %}
+
+<div class="mb-3">
+    <a href="{{ url_for('facturas_ui.list_page') }}" class="link-back">
+        <i class="bi bi-arrow-left"></i> Volver a facturas
+    </a>
+</div>
+
+<h2 class="mb-4"><i class="bi bi-file-earmark-plus"></i> Nueva factura</h2>
+
+<div class="form-factura">
+
+    <div class="form-group">
+        <label>Sucursal</label>
+        <input type="text" class="form-control"
+            value="{{ current_user.sucursal.nombre if current_user.sucursal else 'Sin sucursal' }}" readonly>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Proveedor</label>
+            <select id="proveedor_id" class="form-control">
+                <option value="">-- Selecciona un proveedor --</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Numero de factura *</label>
+            <input type="text" id="numero_factura" class="form-control" placeholder="Ej: FAC-000123" required>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" id="fecha" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Tipo de documento</label>
+            <select id="tipo_documento" class="form-control">
+                <option value="">-- Selecciona --</option>
+                <option value="FCC">FCC (Factura Consumidor Final)</option>
+                <option value="FC">FC (Factura Comercial)</option>
+                <option value="NOTA DE ENVIO">Nota de envio</option>
+                <option value="OTROS">Otros</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Detalle / Concepto</label>
+        <input type="text" id="detalle" class="form-control" placeholder="Ej: Compra de insumos...">
+    </div>
+
+    <div class="form-group">
+        <label>Total de la factura (USD) *</label>
+        <input type="number" id="total_factura" class="form-control" step="0.01" min="0" placeholder="0.00" required>
+    </div>
+
+    <h5 class="mt-4 mb-3">Desglose por categoria</h5>
+
+    <div class="categorias-principales" id="categorias-principales">
+        <p class="text-muted">Cargando categorias...</p>
+    </div>
+
+    <div class="otras-categorias-wrapper">
+        <button type="button" class="btn-otras" id="btn-otras">
+            <i class="bi bi-plus-circle"></i> Agregar otras categorias
+            <span class="badge-count" id="badge-otras" style="display:none;">0</span>
+        </button>
+    </div>
+
+    <div class="modal-overlay" id="modal-otras" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Otras categorias</h3>
+                <button type="button" class="btn-close-modal" id="btn-close-modal">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="categorias-grid" id="categorias-grid">
+                    <p class="text-muted">Cargando categorias...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-artesanos" id="btn-cerrar-modal">
+                    <i class="bi bi-check-lg"></i> Listo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="resumen-validacion" id="resumen-validacion">
+        <div class="resumen-row">
+            <span>Total ingresado:</span>
+            <strong id="total-ingresado">$0.00</strong>
+        </div>
+        <div class="resumen-row">
+            <span>Total factura:</span>
+            <strong id="total-declarado">$0.00</strong>
+        </div>
+        <div class="resumen-row">
+            <span>Diferencia:</span>
+            <strong id="diferencia">$0.00</strong>
+        </div>
+        <div class="estado-validacion" id="estado-validacion">
+            <i class="bi bi-hourglass-split"></i> Ingresa los montos
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <a href="{{ url_for('facturas_ui.list_page') }}" class="btn-cancelar">Cancelar</a>
+        <button type="button" class="btn-artesanos" id="btn-guardar">
+            <i class="bi bi-check-lg"></i> Guardar factura
+        </button>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/facturas.js') }}"></script>
+{% endblock %}
+'@ | Out-File -FilePath app\templates\facturas\form.html -Encoding utf8
+Write-Host "form.html REEMPLAZADO" -ForegroundColor Green

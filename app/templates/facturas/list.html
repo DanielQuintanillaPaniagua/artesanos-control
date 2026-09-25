@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Facturas - ARTESANOS CONTROL{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturas.css') }}">
+{% endblock %}
+
+{% block body_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="bi bi-file-earmark-text"></i> Facturas</h2>
+        <p class="text-muted mb-0">Facturas registradas en tu sucursal</p>
+    </div>
+    <a href="{{ url_for('facturas_ui.create_page') }}" class="btn-artesanos">
+        <i class="bi bi-plus-circle"></i> Nueva factura
+    </a>
+</div>
+
+<div class="filtros-bar">
+    <input type="text" id="buscador" placeholder="Buscar por numero de factura o proveedor...">
+</div>
+
+<div id="facturas-list">
+    <div class="text-center py-5">
+        <div class="spinner-border" style="color:#1a4d3a;"></div>
+        <p class="mt-3 text-muted">Cargando facturas...</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/facturas.js') }}"></script>
+{% endblock %}

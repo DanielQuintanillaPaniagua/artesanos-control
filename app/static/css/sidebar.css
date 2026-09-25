@@ -1,0 +1,132 @@
+.app-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* SIDEBAR */
+.artesanos-sidebar {
+    width: 240px;
+    background: #143d2e;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+}
+
+.sidebar-brand {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-brand img {
+    max-width: 100%;
+    height: auto;
+}
+
+.sidebar-nav {
+    flex: 1;
+    padding: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    color: #b8d4c7;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.sidebar-item.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-left-color: #d42f2f;
+}
+
+.sidebar-item i {
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-user {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+}
+
+.sidebar-user>i {
+    font-size: 1.8rem;
+    color: #b8d4c7;
+}
+
+.sidebar-user>div {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-user strong {
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.sidebar-user small {
+    color: #8fb3a1;
+    font-size: 0.75rem;
+}
+
+.sidebar-user a {
+    color: #b8d4c7;
+    font-size: 1.2rem;
+    transition: color 0.15s;
+}
+
+.sidebar-user a:hover {
+    color: #d42f2f;
+}
+
+/* CONTENIDO PRINCIPAL */
+.artesanos-content {
+    flex: 1;
+    padding: 32px 40px;
+    overflow-y: auto;
+    background: #f8f8f8;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .app-layout {
+        flex-direction: column;
+    }
+
+    .artesanos-sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+    }
+
+    .artesanos-content {
+        padding: 20px;
+    }
+}
