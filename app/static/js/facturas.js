@@ -1,13 +1,35 @@
 ﻿// ============================================
-// ARTESANOS CONTROL - Formulario de Facturas (Empleado)
+// ARTESANOS CONTROL - Formulario de Facturas
 // ============================================
 
 let _categoriasCache = [];
+let _alertaActual = null;
 const CATEGORIAS_PRINCIPALES = ['Comida', 'Bebida', 'Limpieza'];
 
 
 // ============================================
-// CARGAR CATEGORIAS (separando principales)
+// ALERTA FLOTANTE
+// ============================================
+function mostrarAlerta(mensaje) {
+    if (_alertaActual) _alertaActual.remove();
+
+    const alerta = document.createElement('div');
+    alerta.className = 'alerta-descuadre';
+    alerta.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> ${mensaje}`;
+    document.body.appendChild(alerta);
+    _alertaActual = alerta;
+}
+
+function ocultarAlerta() {
+    if (_alertaActual) {
+        _alertaActual.remove();
+        _alertaActual = null;
+    }
+}
+
+
+// ============================================
+// CARGAR CATEGORIAS
 // ============================================
 async function cargarCategorias() {
     const contPrincipales = document.getElementById('categorias-principales');
@@ -27,9 +49,8 @@ async function cargarCategorias() {
         const principales = _categoriasCache.filter(c => CATEGORIAS_PRINCIPALES.includes(c.nombre));
         const otras = _categoriasCache.filter(c => !CATEGORIAS_PRINCIPALES.includes(c.nombre));
 
-        // PRINCIPALES
         contPrincipales.innerHTML = principales.map(c => `
-            <div class="categoria-item">
+            <div class="categoria-item" data-nombre="${c.nombre}">
                 <label>${c.nombre}</label>
                 <input type="number" step="0.01" min="0" 
                        data-categoria-id="${c.id}" 
@@ -38,9 +59,8 @@ async function cargarCategorias() {
             </div>
         `).join('');
 
-        // OTRAS
         contOtras.innerHTML = otras.map(c => `
-            <div class="categoria-item">
+            <div class="categoria-item" data-nombre="${c.nombre}">
                 <label>${c.nombre}</label>
                 <input type="number" step="0.01" min="0" 
                        data-categoria-id="${c.id}" 
@@ -49,7 +69,6 @@ async function cargarCategorias() {
             </div>
         `).join('');
 
-        // Listeners
         document.querySelectorAll('.monto-input').forEach(inp => {
             inp.addEventListener('input', () => {
                 recalcular();
@@ -68,7 +87,7 @@ async function cargarCategorias() {
 
 
 // ============================================
-// BADGE DE OTRAS CATEGORIAS USADAS
+// BADGE OTRAS
 // ============================================
 function actualizarBadgeOtras() {
     const otras = document.querySelectorAll('.monto-otras');
@@ -76,7 +95,6 @@ function actualizarBadgeOtras() {
     otras.forEach(inp => {
         if (parseFloat(inp.value) > 0) count++;
     });
-
     const badge = document.getElementById('badge-otras');
     if (badge) {
         if (count > 0) {
@@ -90,14 +108,30 @@ function actualizarBadgeOtras() {
 
 
 // ============================================
-// MODAL
+// MODALES
 // ============================================
 function abrirModal() {
     document.getElementById('modal-otras').style.display = 'flex';
 }
-
 function cerrarModal() {
     document.getElementById('modal-otras').style.display = 'none';
+}
+
+function abrirModalProveedor() {
+    document.getElementById('modal-proveedor').style.display = 'flex';
+    document.getElementById('nuevo-prov-nombre').value = '';
+    document.getElementById('nuevo-prov-telefono').value = '';
+    document.getElementById('nuevo-prov-email').value = '';
+    document.getElementById('error-nuevo-proveedor').style.display = 'none';
+    document.getElementById('nuevo-prov-nombre').focus();
+}
+function cerrarModalProveedor() {
+    document.getElementById('modal-proveedor').style.display = 'none';
+}
+function mostrarErrorProveedor(msg) {
+    const err = document.getElementById('error-nuevo-proveedor');
+    err.textContent = msg;
+    err.style.display = 'block';
 }
 
 
@@ -124,33 +158,124 @@ async function cargarProveedores() {
 
 
 // ============================================
-// RECALCULAR EN VIVO
+// GUARDAR NUEVO PROVEEDOR
+// ============================================
+async function guardarNuevoProveedor() {
+    const nombre = document.getElementById('nuevo-prov-nombre').value.trim();
+    const telefono = document.getElementById('nuevo-prov-telefono').value.trim();
+    const email = document.getElementById('nuevo-prov-email').value.trim();
+
+    if (!nombre) {
+        mostrarErrorProveedor('El nombre es obligatorio');
+        return;
+    }
+
+    const btnGuardar = document.getElementById('btn-guardar-proveedor');
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<i class="bi bi-hourglass-split"></i> Creando...';
+
+    try {
+        const resp = await fetch('/api/facturas/proveedores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ nombre, telefono, email })
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            const select = document.getElementById('proveedor_id');
+            const opt = document.createElement('option');
+            opt.value = data.proveedor.id;
+            opt.textContent = data.proveedor.nombre;
+            select.appendChild(opt);
+            select.value = data.proveedor.id;
+            cerrarModalProveedor();
+        } else {
+            mostrarErrorProveedor(data.error || 'Error al crear proveedor');
+        }
+    } catch (err) {
+        console.error(err);
+        mostrarErrorProveedor('Error de conexion');
+    } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = '<i class="bi bi-check-lg"></i> Crear proveedor';
+    }
+}
+
+
+// ============================================
+// RECALCULAR (CON BLOQUEO CAPA 8)
 // ============================================
 function recalcular() {
     const inputs = document.querySelectorAll('.monto-input');
     let total = 0;
+
+    // Sumar todos los montos
     inputs.forEach(inp => {
         total += parseFloat(inp.value) || 0;
     });
 
     const totalDeclarado = parseFloat(document.getElementById('total_factura').value) || 0;
     const diferencia = Math.abs(total - totalDeclarado);
+    const excedido = total > totalDeclarado + 0.01;
 
+    // Actualizar contadores
     document.getElementById('total-ingresado').textContent = '$' + total.toFixed(2);
     document.getElementById('total-declarado').textContent = '$' + totalDeclarado.toFixed(2);
     document.getElementById('diferencia').textContent = '$' + diferencia.toFixed(2);
 
+    // Actualizar estado visual
     const estado = document.getElementById('estado-validacion');
-    if (total === 0 && totalDeclarado === 0) {
-        estado.className = 'estado-validacion';
-        estado.innerHTML = '<i class="bi bi-hourglass-split"></i> Ingresa los montos';
-    } else if (diferencia <= 0.01) {
-        estado.className = 'estado-validacion validada';
-        estado.innerHTML = '<i class="bi bi-check-circle-fill"></i> FACTURA VALIDADA';
-    } else {
+    const btnGuardar = document.getElementById('btn-guardar');
+
+    if (excedido) {
+        // ====== CASO: SE PASA DEL TOTAL ======
         estado.className = 'estado-validacion observada';
-        estado.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> DESCUADRE: $' + diferencia.toFixed(2);
+        estado.innerHTML = '<i class="bi bi-x-circle-fill"></i> NO PUEDES SUPERAR EL TOTAL DE LA FACTURA';
+
+        // Deshabilitar boton
+        if (btnGuardar) {
+            btnGuardar.disabled = true;
+            btnGuardar.classList.add('disabled');
+        }
+
+        // Mostrar alerta flotante
+        mostrarAlerta(`La suma de categorias ($${total.toFixed(2)}) supera el total de la factura ($${totalDeclarado.toFixed(2)})`);
+
+    } else {
+        // ====== CASO NORMAL ======
+        ocultarAlerta();
+
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.classList.remove('disabled');
+        }
+
+        if (total === 0 && totalDeclarado === 0) {
+            estado.className = 'estado-validacion';
+            estado.innerHTML = '<i class="bi bi-hourglass-split"></i> Ingresa los montos';
+        } else if (diferencia <= 0.01) {
+            estado.className = 'estado-validacion validada';
+            estado.innerHTML = '<i class="bi bi-check-circle-fill"></i> FACTURA VALIDADA';
+        } else {
+            estado.className = 'estado-validacion observada';
+            estado.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> DESCUADRE: $' + diferencia.toFixed(2);
+        }
     }
+
+    // Marcar visualmente la categoria que se excede (si hay una sola que supera)
+    inputs.forEach(inp => {
+        const item = inp.closest('.categoria-item');
+        if (item) {
+            const monto = parseFloat(inp.value) || 0;
+            if (monto > totalDeclarado) {
+                item.classList.add('excedida');
+            } else {
+                item.classList.remove('excedida');
+            }
+        }
+    });
 }
 
 
@@ -165,10 +290,11 @@ async function guardarFactura() {
     const detalle = document.getElementById('detalle').value.trim();
     const total_factura = parseFloat(document.getElementById('total_factura').value) || 0;
 
-    if (!numero) { alert('Ingresa el numero de factura'); return; }
-    if (total_factura <= 0) { alert('Ingresa el total de la factura'); return; }
+    if (!numero) { mostrarAlerta('Ingresa el numero de factura'); return; }
+    if (total_factura <= 0) { mostrarAlerta('Ingresa el total de la factura'); return; }
 
     const detalles = [];
+    let totalIngresado = 0;
     document.querySelectorAll('.monto-input').forEach(inp => {
         const monto = parseFloat(inp.value) || 0;
         if (monto > 0) {
@@ -176,10 +302,17 @@ async function guardarFactura() {
                 categoria_id: parseInt(inp.dataset.categoriaId),
                 monto: monto
             });
+            totalIngresado += monto;
         }
     });
 
-    if (!detalles.length) { alert('Ingresa al menos una categoria con monto'); return; }
+    if (!detalles.length) { mostrarAlerta('Ingresa al menos una categoria con monto'); return; }
+
+    // VERIFICACION CAPA 8 - Bloqueo antes de enviar
+    if (totalIngresado > total_factura + 0.01) {
+        mostrarAlerta('NO PUEDES GUARDAR: la suma supera el total de la factura');
+        return;
+    }
 
     const datos = {
         numero_factura: numero,
@@ -191,6 +324,10 @@ async function guardarFactura() {
         detalles: detalles
     };
 
+    const btnGuardar = document.getElementById('btn-guardar');
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando...';
+
     try {
         const resp = await fetch('/api/facturas/', {
             method: 'POST',
@@ -201,7 +338,10 @@ async function guardarFactura() {
         const data = await resp.json();
 
         if (data.success) {
-            alert(data.message);
+            mostrarAlerta('Factura guardada correctamente');
+            setTimeout(() => ocultarAlerta(), 2000);
+
+            // Limpiar formulario
             document.getElementById('numero_factura').value = '';
             document.getElementById('detalle').value = '';
             document.getElementById('total_factura').value = '';
@@ -209,11 +349,14 @@ async function guardarFactura() {
             recalcular();
             actualizarBadgeOtras();
         } else {
-            alert('Error: ' + (data.error || 'No se pudo guardar'));
+            mostrarAlerta('Error: ' + (data.error || 'No se pudo guardar'));
         }
     } catch (err) {
         console.error(err);
-        alert('Error de conexion');
+        mostrarAlerta('Error de conexion');
+    } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = '<i class="bi bi-check-lg"></i> Guardar factura';
     }
 }
 
@@ -222,6 +365,7 @@ async function guardarFactura() {
 // INICIALIZACION
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
+
     if (document.getElementById('categorias-principales')) {
         cargarCategorias();
         cargarProveedores();
@@ -234,11 +378,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('total_factura').addEventListener('input', recalcular);
 
         const btnGuardar = document.getElementById('btn-guardar');
-        if (btnGuardar) {
-            btnGuardar.addEventListener('click', guardarFactura);
-        }
+        if (btnGuardar) btnGuardar.addEventListener('click', guardarFactura);
 
-        // Modal
+        // Modal categorias
         const btnOtras = document.getElementById('btn-otras');
         if (btnOtras) btnOtras.addEventListener('click', abrirModal);
 
@@ -252,6 +394,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) cerrarModal();
+            });
+        }
+
+        // Modal proveedor
+        const btnNuevoProveedor = document.getElementById('btn-nuevo-proveedor');
+        if (btnNuevoProveedor) btnNuevoProveedor.addEventListener('click', abrirModalProveedor);
+
+        const btnCloseModalProv = document.getElementById('btn-close-modal-proveedor');
+        if (btnCloseModalProv) btnCloseModalProv.addEventListener('click', cerrarModalProveedor);
+
+        const btnCancelarProv = document.getElementById('btn-cancelar-proveedor');
+        if (btnCancelarProv) btnCancelarProv.addEventListener('click', cerrarModalProveedor);
+
+        const btnGuardarProv = document.getElementById('btn-guardar-proveedor');
+        if (btnGuardarProv) btnGuardarProv.addEventListener('click', guardarNuevoProveedor);
+
+        const modalProv = document.getElementById('modal-proveedor');
+        if (modalProv) {
+            modalProv.addEventListener('click', (e) => {
+                if (e.target === modalProv) cerrarModalProveedor();
+            });
+        }
+
+        const inputNombre = document.getElementById('nuevo-prov-nombre');
+        if (inputNombre) {
+            inputNombre.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    guardarNuevoProveedor();
+                }
             });
         }
     }

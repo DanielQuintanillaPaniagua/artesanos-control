@@ -177,3 +177,79 @@ body.bg-artesanos {
         max-width: 180px;
     }
 }
+
+/* ============================================
+   BANNER DE CONEXION (OFFLINE)
+   ============================================ */
+
+.banner-conexion {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99998;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #fff;
+    background: #d42f2f;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease;
+}
+
+.banner-conexion.online {
+    background: #2ecc71;
+}
+
+.banner-conexion.sincronizando {
+    background: #f39c12;
+}
+
+.banner-conexion i {
+    font-size: 1.2rem;
+}
+
+.banner-badge {
+    background: rgba(255, 255, 255, 0.25);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+/* Cuando hay banner, empujar contenido */
+body.tiene-banner {
+    padding-top: 48px;
+}
+
+/* ============================================
+   INPUTS NUMERICOS - Ocultar spinners
+   ============================================ */
+
+/* Chrome, Safari, Edge, Opera */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Los montos ahora se ven limpios */
+.monto-input,
+.form-factura input[type="number"] {
+    font-family: inherit;
+}

@@ -56,6 +56,12 @@ def create_factura():
         return jsonify({'success': False, 'error': 'Numero de factura obligatorio'}), 400
     if not detalles:
         return jsonify({'success': False, 'error': 'Debes ingresar al menos una categoria'}), 400
+    suma_detalles = sum(float(d.get('monto', 0)) for d in detalles)
+    if suma_detalles > total_factura + 0.01:
+        return jsonify({
+            'success': False,
+            'error': f'La suma de categorias (${suma_detalles:.2f}) supera el total de la factura (${total_factura:.2f})'
+        }), 400
 
     es_valida, mensaje, _ = validar_factura(detalles, total_factura)
     estado = 'Validada' if es_valida else 'Observada'
@@ -126,3 +132,44 @@ def list_proveedores():
         'success': True,
         'proveedores': [p.to_dict() for p in proveedores]
     })
+@bp.route('/proveedores', methods=['POST'])
+@login_required
+def create_proveedor():
+    """Crea un proveedor nuevo desde el formulario de facturas."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No se enviaron datos'}), 400
+
+    nombre = (data.get('nombre') or '').strip()
+    telefono = (data.get('telefono') or '').strip()
+    email = (data.get('email') or '').strip()
+
+    if not nombre:
+        return jsonify({'success': False, 'error': 'El nombre es obligatorio'}), 400
+
+    # Verificar duplicado
+    existente = Proveedor.query.filter(
+        Proveedor.nombre.ilike(nombre)
+    ).first()
+    if existente:
+        return jsonify({
+            'success': False,
+            'error': 'Ya existe un proveedor con ese nombre',
+            'proveedor': existente.to_dict()
+        }), 409
+
+    proveedor = Proveedor(
+        nombre=nombre,
+        telefono=telefono or None,
+        email=email or None,
+        estado='Activo'
+    )
+    db.session.add(proveedor)
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'message': f'Proveedor "{nombre}" creado',
+        'proveedor': proveedor.to_dict()
+    }), 201
+    
