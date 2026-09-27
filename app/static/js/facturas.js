@@ -18,6 +18,14 @@ function mostrarAlerta(mensaje) {
     alerta.innerHTML = `<i class="bi bi-exclamation-triangle-fill"></i> ${mensaje}`;
     document.body.appendChild(alerta);
     _alertaActual = alerta;
+
+    // Auto-ocultar despues de 5 segundos
+    setTimeout(() => {
+        if (_alertaActual === alerta) {
+            alerta.remove();
+            _alertaActual = null;
+        }
+    }, 5000);
 }
 
 function ocultarAlerta() {
@@ -50,21 +58,21 @@ async function cargarCategorias() {
         const otras = _categoriasCache.filter(c => !CATEGORIAS_PRINCIPALES.includes(c.nombre));
 
         contPrincipales.innerHTML = principales.map(c => `
-            <div class="categoria-item" data-nombre="${c.nombre}">
+            <div class="categoria-item">
                 <label>${c.nombre}</label>
-                <input type="number" step="0.01" min="0" 
-                       data-categoria-id="${c.id}" 
-                       class="monto-input monto-principal" 
+                <input type="number" step="0.01" min="0"
+                       data-categoria-id="${c.id}"
+                       class="monto-input monto-principal"
                        placeholder="0.00">
             </div>
         `).join('');
 
         contOtras.innerHTML = otras.map(c => `
-            <div class="categoria-item" data-nombre="${c.nombre}">
+            <div class="categoria-item">
                 <label>${c.nombre}</label>
-                <input type="number" step="0.01" min="0" 
-                       data-categoria-id="${c.id}" 
-                       class="monto-input monto-otras" 
+                <input type="number" step="0.01" min="0"
+                       data-categoria-id="${c.id}"
+                       class="monto-input monto-otras"
                        placeholder="0.00">
             </div>
         `).join('');
@@ -87,7 +95,7 @@ async function cargarCategorias() {
 
 
 // ============================================
-// BADGE OTRAS
+// BADGE DE OTRAS CATEGORIAS USADAS
 // ============================================
 function actualizarBadgeOtras() {
     const otras = document.querySelectorAll('.monto-otras');
@@ -95,6 +103,7 @@ function actualizarBadgeOtras() {
     otras.forEach(inp => {
         if (parseFloat(inp.value) > 0) count++;
     });
+
     const badge = document.getElementById('badge-otras');
     if (badge) {
         if (count > 0) {
@@ -113,6 +122,7 @@ function actualizarBadgeOtras() {
 function abrirModal() {
     document.getElementById('modal-otras').style.display = 'flex';
 }
+
 function cerrarModal() {
     document.getElementById('modal-otras').style.display = 'none';
 }
@@ -125,9 +135,11 @@ function abrirModalProveedor() {
     document.getElementById('error-nuevo-proveedor').style.display = 'none';
     document.getElementById('nuevo-prov-nombre').focus();
 }
+
 function cerrarModalProveedor() {
     document.getElementById('modal-proveedor').style.display = 'none';
 }
+
 function mostrarErrorProveedor(msg) {
     const err = document.getElementById('error-nuevo-proveedor');
     err.textContent = msg;
@@ -205,13 +217,11 @@ async function guardarNuevoProveedor() {
 
 
 // ============================================
-// RECALCULAR (CON BLOQUEO CAPA 8)
+// RECALCULAR EN VIVO
 // ============================================
 function recalcular() {
     const inputs = document.querySelectorAll('.monto-input');
     let total = 0;
-
-    // Sumar todos los montos
     inputs.forEach(inp => {
         total += parseFloat(inp.value) || 0;
     });
@@ -220,38 +230,26 @@ function recalcular() {
     const diferencia = Math.abs(total - totalDeclarado);
     const excedido = total > totalDeclarado + 0.01;
 
-    // Actualizar contadores
     document.getElementById('total-ingresado').textContent = '$' + total.toFixed(2);
     document.getElementById('total-declarado').textContent = '$' + totalDeclarado.toFixed(2);
     document.getElementById('diferencia').textContent = '$' + diferencia.toFixed(2);
 
-    // Actualizar estado visual
     const estado = document.getElementById('estado-validacion');
     const btnGuardar = document.getElementById('btn-guardar');
 
     if (excedido) {
-        // ====== CASO: SE PASA DEL TOTAL ======
         estado.className = 'estado-validacion observada';
         estado.innerHTML = '<i class="bi bi-x-circle-fill"></i> NO PUEDES SUPERAR EL TOTAL DE LA FACTURA';
-
-        // Deshabilitar boton
         if (btnGuardar) {
             btnGuardar.disabled = true;
             btnGuardar.classList.add('disabled');
         }
-
-        // Mostrar alerta flotante
-        mostrarAlerta(`La suma de categorias ($${total.toFixed(2)}) supera el total de la factura ($${totalDeclarado.toFixed(2)})`);
-
+        mostrarAlerta(`La suma ($${total.toFixed(2)}) supera el total ($${totalDeclarado.toFixed(2)})`);
     } else {
-        // ====== CASO NORMAL ======
-        ocultarAlerta();
-
         if (btnGuardar) {
             btnGuardar.disabled = false;
             btnGuardar.classList.remove('disabled');
         }
-
         if (total === 0 && totalDeclarado === 0) {
             estado.className = 'estado-validacion';
             estado.innerHTML = '<i class="bi bi-hourglass-split"></i> Ingresa los montos';
@@ -264,18 +262,30 @@ function recalcular() {
         }
     }
 
-    // Marcar visualmente la categoria que se excede (si hay una sola que supera)
     inputs.forEach(inp => {
         const item = inp.closest('.categoria-item');
         if (item) {
             const monto = parseFloat(inp.value) || 0;
-            if (monto > totalDeclarado) {
+            if (monto > totalDeclarado && totalDeclarado > 0) {
                 item.classList.add('excedida');
             } else {
                 item.classList.remove('excedida');
             }
         }
     });
+}
+
+
+// ============================================
+// LIMPIAR FORMULARIO
+// ============================================
+function limpiarFormularioFactura() {
+    document.getElementById('numero_factura').value = '';
+    document.getElementById('detalle').value = '';
+    document.getElementById('total_factura').value = '';
+    document.querySelectorAll('.monto-input').forEach(inp => inp.value = '');
+    recalcular();
+    actualizarBadgeOtras();
 }
 
 
@@ -308,7 +318,6 @@ async function guardarFactura() {
 
     if (!detalles.length) { mostrarAlerta('Ingresa al menos una categoria con monto'); return; }
 
-    // VERIFICACION CAPA 8 - Bloqueo antes de enviar
     if (totalIngresado > total_factura + 0.01) {
         mostrarAlerta('NO PUEDES GUARDAR: la suma supera el total de la factura');
         return;
@@ -323,6 +332,15 @@ async function guardarFactura() {
         total_factura: total_factura,
         detalles: detalles
     };
+
+    // ====== DETECCION OFFLINE ======
+    if (!navigator.onLine) {
+        const totalCola = agregarALaCola(datos);
+        mostrarAlerta(`Sin conexion. Factura guardada localmente (${totalCola} en cola)`);
+        limpiarFormularioFactura();
+        return;
+    }
+    // =================================
 
     const btnGuardar = document.getElementById('btn-guardar');
     btnGuardar.disabled = true;
@@ -339,21 +357,16 @@ async function guardarFactura() {
 
         if (data.success) {
             mostrarAlerta('Factura guardada correctamente');
-            setTimeout(() => ocultarAlerta(), 2000);
-
-            // Limpiar formulario
-            document.getElementById('numero_factura').value = '';
-            document.getElementById('detalle').value = '';
-            document.getElementById('total_factura').value = '';
-            document.querySelectorAll('.monto-input').forEach(inp => inp.value = '');
-            recalcular();
-            actualizarBadgeOtras();
+            limpiarFormularioFactura();
         } else {
             mostrarAlerta('Error: ' + (data.error || 'No se pudo guardar'));
         }
     } catch (err) {
-        console.error(err);
-        mostrarAlerta('Error de conexion');
+        // Si falla por red, guardar en cola local
+        console.error('Error de red, guardando en cola:', err);
+        const totalCola = agregarALaCola(datos);
+        mostrarAlerta(`Sin conexion. Factura guardada localmente (${totalCola} en cola)`);
+        limpiarFormularioFactura();
     } finally {
         btnGuardar.disabled = false;
         btnGuardar.innerHTML = '<i class="bi bi-check-lg"></i> Guardar factura';
@@ -365,7 +378,6 @@ async function guardarFactura() {
 // INICIALIZACION
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-
     if (document.getElementById('categorias-principales')) {
         cargarCategorias();
         cargarProveedores();
@@ -375,10 +387,15 @@ document.addEventListener('DOMContentLoaded', () => {
             fechaInput.value = new Date().toISOString().split('T')[0];
         }
 
-        document.getElementById('total_factura').addEventListener('input', recalcular);
+        const totalInput = document.getElementById('total_factura');
+        if (totalInput) {
+            totalInput.addEventListener('input', recalcular);
+        }
 
         const btnGuardar = document.getElementById('btn-guardar');
-        if (btnGuardar) btnGuardar.addEventListener('click', guardarFactura);
+        if (btnGuardar) {
+            btnGuardar.addEventListener('click', guardarFactura);
+        }
 
         // Modal categorias
         const btnOtras = document.getElementById('btn-otras');
