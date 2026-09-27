@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Factura {{ factura.numero_factura }} · ARTESANOS CONTROL{% endblock %}
+
+{% block body_content %}
+<div class="container-fluid py-4">
+
+    <a href="{{ url_for('facturas_ui.list_page') }}" class="btn btn-sm btn-outline-secondary mb-3">
+        <i class="bi bi-arrow-left me-1"></i>Volver al listado
+    </a>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Factura #{{ factura.numero_factura }}</h4>
+            {% if factura.estado == 'Validada' %}
+            <span class="badge bg-success">Validada</span>
+            {% else %}
+            <span class="badge bg-danger">Observada</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <p><strong>Proveedor:</strong> {{ factura.proveedor.nombre if factura.proveedor else '—' }}</p>
+            <p><strong>Fecha:</strong> {{ factura.fecha.strftime('%d/%m/%Y') if factura.fecha else '—' }}</p>
+            <p><strong>Total:</strong> ${{ '%.2f'|format(factura.total_factura or 0) }}</p>
+            <p><strong>Sucursal:</strong> {{ factura.sucursal.nombre if factura.sucursal else '—' }}</p>
+            {% if factura.observacion %}
+            <div class="alert alert-warning">
+                <strong>Observación:</strong> {{ factura.observacion }}
+            </div>
+            {% endif %}
+
+            <h5 class="mt-4">Desglose por categoría</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Categoría</th>
+                        <th class="text-end">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in factura.detalles %}
+                    <tr>
+                        <td>{{ d.categoria.nombre if d.categoria else '—' }}</td>
+                        <td class="text-end">${{ '%.2f'|format(d.monto or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="2" class="text-muted text-center">Sin detalles</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
