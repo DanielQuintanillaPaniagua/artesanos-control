@@ -1,36 +1,133 @@
 {% extends "base.html" %}
 
-{% block title %}Facturas - ARTESANOS CONTROL{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/facturas.css') }}">
-{% endblock %}
+{% block title %}Facturas · ARTESANOS CONTROL{% endblock %}
 
 {% block body_content %}
+<div class="container-fluid py-4">
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2><i class="bi bi-file-earmark-text"></i> Facturas</h2>
-        <p class="text-muted mb-0">Facturas registradas en tu sucursal</p>
+    {# ---------- Encabezado + Buscador ---------- #}
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-0 fw-bold">
+                <i class="bi bi-file-earmark-text me-2"></i>Facturas
+            </h2>
+            <small class="text-muted">
+                {% if current_user.is_owner() %}
+                Todas las sucursales
+                {% else %}
+                Sucursal: {{ current_user.sucursal.nombre if current_user.sucursal else '—' }}
+                {% endif %}
+            </small>
+        </div>
+
+        <form method="GET" action="{{ url_for('facturas_ui.list_page') }}" class="d-flex" role="search">
+            <input type="search" name="q" value="{{ q }}" class="form-control me-2"
+                placeholder="Buscar por #factura o proveedor…" aria-label="Buscar">
+            <button class="btn btn-primary" type="submit">
+                <i class="bi bi-search"></i>
+            </button>
+            {% if q %}
+            <a href="{{ url_for('facturas_ui.list_page') }}" class="btn btn-outline-secondary ms-2" title="Limpiar">
+                <i class="bi bi-x-lg"></i>
+            </a>
+            {% endif %}
+        </form>
     </div>
-    <a href="{{ url_for('facturas_ui.create_page') }}" class="btn-artesanos">
-        <i class="bi bi-plus-circle"></i> Nueva factura
-    </a>
-</div>
 
-<div class="filtros-bar">
-    <input type="text" id="buscador" placeholder="Buscar por numero de factura o proveedor...">
-</div>
-
-<div id="facturas-list">
-    <div class="text-center py-5">
-        <div class="spinner-border" style="color:#1a4d3a;"></div>
-        <p class="mt-3 text-muted">Cargando facturas...</p>
+    {# ---------- Tabla ---------- #}
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#Factura</th>
+                        <th>Proveedor</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-center">Estado</th>
+                        <th>Fecha</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in facturas.items %}
+                    <tr>
+                        <td class="fw-semibold">{{ f.numero_factura }}</td>
+                        <td>{{ f.proveedor.nombre if f.proveedor else '—' }}</td>
+                        <td class="text-end">${{ '%.2f'|format(f.total_factura or 0) }}</td>
+                        <td class="text-center">
+                            {% if f.estado == 'Validada' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-check-circle me-1"></i>Validada
+                            </span>
+                            {% elif f.estado == 'Observada' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                <i class="bi bi-exclamation-triangle me-1"></i>Observada
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary">{{ f.estado }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ f.fecha.strftime('%d/%m/%Y') if f.fecha else '—' }}</td>
+                        <td class="text-center">
+                            <a href="{{ url_for('facturas_ui.detail_page', factura_id=f.id) }}"
+                                class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i>Ver detalle
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                            {% if q %}
+                            No se encontraron facturas para "<strong>{{ q }}</strong>".
+                            {% else %}
+                            No hay facturas registradas.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
+
+    {# ---------- Paginación ---------- #}
+    {% if facturas.pages > 1 %}
+    <nav class="mt-4" aria-label="Paginación de facturas">
+        <ul class="pagination justify-content-center">
+
+            <li class="page-item {% if not facturas.has_prev %}disabled{% endif %}">
+                <a class="page-link"
+                    href="{{ url_for('facturas_ui.list_page', page=facturas.prev_num, q=q) if facturas.has_prev else '#' }}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+
+            {% for num in facturas.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
+            {% if num %}
+            <li class="page-item {% if num == facturas.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('facturas_ui.list_page', page=num, q=q) }}">{{ num }}</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+            {% endfor %}
+
+            <li class="page-item {% if not facturas.has_next %}disabled{% endif %}">
+                <a class="page-link"
+                    href="{{ url_for('facturas_ui.list_page', page=facturas.next_num, q=q) if facturas.has_next else '#' }}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+
+        </ul>
+        <p class="text-center text-muted small mb-0">
+            Mostrando {{ facturas.items|length }} de {{ facturas.total }} facturas
+            (página {{ facturas.page }} de {{ facturas.pages }})
+        </p>
+    </nav>
+    {% endif %}
+
 </div>
-
-{% endblock %}
-
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/facturas.js') }}"></script>
 {% endblock %}
