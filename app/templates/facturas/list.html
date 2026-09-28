@@ -1,40 +1,78 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
-{% block title %}Facturas · ARTESANOS CONTROL{% endblock %}
+{% block title %}Facturas{% endblock %}
 
 {% block body_content %}
 <div class="container-fluid py-4">
 
-    {# ---------- Encabezado + Buscador ---------- #}
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-3">
         <div>
             <h2 class="mb-0 fw-bold">
                 <i class="bi bi-file-earmark-text me-2"></i>Facturas
             </h2>
-            <small class="text-muted">
-                {% if current_user.is_owner() %}
-                Todas las sucursales
-                {% else %}
+
+            {% if current_user.is_owner() %}
+            <div class="dropdown sucursal-dropdown mt-2">
+                <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-shop icono"></i>
+                    <span class="texto">
+                        <span class="label">Sucursal:</span>
+                        <span class="valor">
+                            {% if sucursal_id %}
+                                {% for s in sucursales %}{% if s.id == sucursal_id %}{{ s.nombre }}{% endif %}{% endfor %}
+                            {% else %}
+                                Todas las sucursales
+                            {% endif %}
+                        </span>
+                    </span>
+                    <i class="bi bi-chevron-down chevron"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item {% if not sucursal_id %}active{% endif %}"
+                           href="{{ url_for('facturas_ui.list_page', q=q if q else None) }}">
+                            Todas las sucursales
+                        </a>
+                    </li>
+                    {% for s in sucursales %}
+                    <li>
+                        <a class="dropdown-item {% if sucursal_id == s.id %}active{% endif %}"
+                           href="{{ url_for('facturas_ui.list_page', sucursal=s.id, q=q if q else None) }}">
+                            {{ s.nombre }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+            <small class="text-muted d-block mt-2">
                 Sucursal: {{ current_user.sucursal.nombre if current_user.sucursal else '—' }}
-                {% endif %}
             </small>
+            {% endif %}
         </div>
 
-        <form method="GET" action="{{ url_for('facturas_ui.list_page') }}" class="d-flex" role="search">
-            <input type="search" name="q" value="{{ q }}" class="form-control me-2"
-                placeholder="Buscar por #factura o proveedor…" aria-label="Buscar">
-            <button class="btn btn-primary" type="submit">
-                <i class="bi bi-search"></i>
-            </button>
-            {% if q %}
-            <a href="{{ url_for('facturas_ui.list_page') }}" class="btn btn-outline-secondary ms-2" title="Limpiar">
-                <i class="bi bi-x-lg"></i>
+        <div class="d-flex align-items-center gap-2">
+            <form method="GET" action="{{ url_for('facturas_ui.list_page') }}" class="d-flex" role="search">
+                {% if sucursal_id %}<input type="hidden" name="sucursal" value="{{ sucursal_id }}">{% endif %}
+                <input type="search" name="q" value="{{ q }}" class="form-control me-2"
+                    placeholder="Buscar por #factura o proveedor…" aria-label="Buscar">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-search"></i>
+                </button>
+                {% if q %}
+                <a href="{{ url_for('facturas_ui.list_page', sucursal=sucursal_id) }}"
+                   class="btn btn-outline-secondary ms-2" title="Limpiar">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+                {% endif %}
+            </form>
+
+            <a href="{{ url_for('facturas_ui.create_page') }}" class="btn btn-success text-nowrap">
+                <i class="bi bi-plus-lg me-1"></i>Nueva Factura
             </a>
-            {% endif %}
-        </form>
+        </div>
     </div>
 
-    {# ---------- Tabla ---------- #}
     <div class="card shadow-sm border-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -42,6 +80,7 @@
                     <tr>
                         <th>#Factura</th>
                         <th>Proveedor</th>
+                        <th>Sucursal</th>
                         <th class="text-end">Total</th>
                         <th class="text-center">Estado</th>
                         <th>Fecha</th>
@@ -53,6 +92,7 @@
                     <tr>
                         <td class="fw-semibold">{{ f.numero_factura }}</td>
                         <td>{{ f.proveedor.nombre if f.proveedor else '—' }}</td>
+                        <td><small class="text-muted">{{ f.sucursal.nombre if f.sucursal else '—' }}</small></td>
                         <td class="text-end">${{ '%.2f'|format(f.total_factura or 0) }}</td>
                         <td class="text-center">
                             {% if f.estado == 'Validada' %}
@@ -69,15 +109,23 @@
                         </td>
                         <td>{{ f.fecha.strftime('%d/%m/%Y') if f.fecha else '—' }}</td>
                         <td class="text-center">
-                            <a href="{{ url_for('facturas_ui.detail_page', factura_id=f.id) }}"
-                                class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-eye me-1"></i>Ver detalle
-                            </a>
+                            <div class="d-flex gap-1 justify-content-center">
+                                <a href="{{ url_for('facturas_ui.detail_page', factura_id=f.id) }}"
+                                    class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>Ver detalle
+                                </a>
+                                {% if current_user.is_owner() %}
+                                <a href="{{ url_for('editar_factura.pantalla_editar', factura_id=f.id) }}"
+                                    class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-pencil me-1"></i>Editar
+                                </a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-5">
+                        <td colspan="7" class="text-center text-muted py-5">
                             <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                             {% if q %}
                             No se encontraron facturas para "<strong>{{ q }}</strong>".
@@ -92,35 +140,31 @@
         </div>
     </div>
 
-    {# ---------- Paginación ---------- #}
     {% if facturas.pages > 1 %}
     <nav class="mt-4" aria-label="Paginación de facturas">
         <ul class="pagination justify-content-center">
-
             <li class="page-item {% if not facturas.has_prev %}disabled{% endif %}">
                 <a class="page-link"
-                    href="{{ url_for('facturas_ui.list_page', page=facturas.prev_num, q=q) if facturas.has_prev else '#' }}">
+                    href="{{ url_for('facturas_ui.list_page', page=facturas.prev_num, q=q, sucursal=sucursal_id) if facturas.has_prev else '#' }}">
                     <i class="bi bi-chevron-left"></i>
                 </a>
             </li>
-
             {% for num in facturas.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
             {% if num %}
             <li class="page-item {% if num == facturas.page %}active{% endif %}">
-                <a class="page-link" href="{{ url_for('facturas_ui.list_page', page=num, q=q) }}">{{ num }}</a>
+                <a class="page-link"
+                   href="{{ url_for('facturas_ui.list_page', page=num, q=q, sucursal=sucursal_id) }}">{{ num }}</a>
             </li>
             {% else %}
             <li class="page-item disabled"><span class="page-link">…</span></li>
             {% endif %}
             {% endfor %}
-
             <li class="page-item {% if not facturas.has_next %}disabled{% endif %}">
                 <a class="page-link"
-                    href="{{ url_for('facturas_ui.list_page', page=facturas.next_num, q=q) if facturas.has_next else '#' }}">
+                    href="{{ url_for('facturas_ui.list_page', page=facturas.next_num, q=q, sucursal=sucursal_id) if facturas.has_next else '#' }}">
                     <i class="bi bi-chevron-right"></i>
                 </a>
             </li>
-
         </ul>
         <p class="text-center text-muted small mb-0">
             Mostrando {{ facturas.items|length }} de {{ facturas.total }} facturas

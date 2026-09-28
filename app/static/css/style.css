@@ -253,3 +253,59 @@ input[type="number"] {
 .form-factura input[type="number"] {
     font-family: inherit;
 }
+
+/* ===== Dropdown de sucursal en el listado ===== */
+.sucursal-dropdown .btn {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 8px 16px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 280px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.sucursal-dropdown .btn:hover,
+.sucursal-dropdown .btn:focus {
+    border-color: #0b5d3b;
+    box-shadow: 0 0 0 3px rgba(11, 93, 59, 0.1);
+}
+.sucursal-dropdown .btn .icono {
+    color: #0b5d3b;
+    font-size: 1.5rem;
+    line-height: 1;
+}
+.sucursal-dropdown .btn .texto {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+    flex-grow: 1;
+}
+.sucursal-dropdown .btn .texto .label {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+.sucursal-dropdown .btn .texto .valor {
+    font-size: 1rem;
+    color: #212529;
+    font-weight: 500;
+}
+.sucursal-dropdown .btn::after {
+    display: none; /* quitamos la flechita default de Bootstrap */
+}
+.sucursal-dropdown .btn .chevron {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+.sucursal-dropdown .dropdown-menu {
+    min-width: 280px;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.sucursal-dropdown .dropdown-item.active {
+    background-color: #0b5d3b;
+    color: #fff;
+}

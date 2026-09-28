@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Editar factura {{ factura.numero_factura }}{% endblock %}
+
+{# AJUSTAR los nombres de bloque a los que use base.html (content / extra_css / scripts) #}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/editar_factura.css') }}">
+{% endblock %}
+
+{% block body_content %}
+<div class="ef-tarjeta">
+    <h1 class="h4 fw-bold mb-1">Editar factura</h1>
+    <p class="text-secondary mb-3">Corrección de factura ya registrada</p>
+    <div class="ef-aviso">Solo el administrador puede modificar facturas ya guardadas.</div>
+
+    <form id="formEditarFactura" novalidate
+        data-url="{{ url_for('editar_factura.guardar_correccion', factura_id=factura.id) }}">
+        <div class="row g-3">
+            <div class="col-sm-6">
+                <label class="form-label" for="proveedor">Proveedor</label>
+                <select id="proveedor" class="form-select">
+                    {% for p in proveedores %}
+                    <option value="{{ p.id }}" {{ 'selected' if p.id==factura.proveedor_id }}>{{ p.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label" for="numero">Número de factura</label>
+                <input id="numero" class="form-control" value="{{ factura.numero_factura }}" readonly>
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label" for="fecha">Fecha</label>
+                <input id="fecha" type="date" class="form-control" value="{{ factura.fecha }}">
+            </div>
+            <div class="col-sm-6">
+                <label class="form-label" for="total">Total factura</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input id="total" type="number" step="0.01" min="0" class="form-control"
+                        value="{{ '%.2f'|format(factura.total_factura) }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="ef-desglose">
+            <div class="fw-semibold">Desglose</div>
+            <div class="text-secondary small mb-3">Ingresa el monto por categoría</div>
+
+            {% for c in categorias %}
+            <div class="ef-fila">
+                <label for="cat{{ c.id }}">{{ c.nombre }}</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input id="cat{{ c.id }}" data-categoria="{{ c.id }}" type="number" step="0.01" min="0"
+                        class="form-control ef-monto" value="{{ '%.2f'|format(montos.get(c.id, 0)) }}">
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="ef-resumen">
+                <div><span>Total ingresado</span><span id="rIngresado">$0.00</span></div>
+                <div><span>Total factura</span><span id="rTotal">$0.00</span></div>
+                <div class="ef-dif"><span>Diferencia</span><span id="rDif">$0.00</span></div>
+            </div>
+            <div id="efAjuste" class="ef-ajuste" hidden>
+                <select id="efCategoriaAjuste" class="form-select form-select-sm" aria-label="Categoría a ajustar">
+                    {% for c in categorias %}<option value="{{ c.id }}">{{ c.nombre }}</option>{% endfor %}
+                </select>
+                <button type="button" id="efBtnAjuste" class="btn btn-sm btn-outline-success">Asignar
+                    diferencia</button>
+            </div>
+        </div>
+
+        <div id="estado" class="ef-estado" role="status" aria-live="polite"></div>
+
+        <div class="mt-3">
+            <label class="form-label" for="motivo">Motivo de la corrección</label>
+            <textarea id="motivo" class="form-control" rows="2" maxlength="300"
+                placeholder="Ej: El proveedor reportó mal el monto de bebidas"></textarea>
+            <div class="form-text">Queda registrado en el historial junto con tu usuario y la fecha.</div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ url_for('facturas_ui.list_page') }}"
+                class="btn btn-outline-secondary flex-fill">Cancelar</a>
+            <button type="submit" id="btnGuardar" class="btn ef-btn-guardar flex-fill">Guardar cambios</button>
+        </div>
+    </form>
+</div>
+<dialog id="efConfirmar" class="ef-dialogo">
+    <h2 class="h5 fw-bold">Confirmar corrección</h2>
+    <p class="text-secondary small">Revisa lo que va a cambiar en la factura {{ factura.numero_factura }}.</p>
+    <table class="table table-sm ef-tabla-cambios">
+        <thead>
+            <tr>
+                <th>Campo</th>
+                <th>Antes</th>
+                <th>Después</th>
+            </tr>
+        </thead>
+        <tbody id="efCambios"></tbody>
+    </table>
+    <div class="d-flex gap-2 justify-content-end">
+        <button type="button" id="efCancelarDialogo" class="btn btn-outline-secondary">Volver</button>
+        <button type="button" id="efConfirmarGuardar" class="btn ef-btn-guardar">Confirmar y guardar</button>
+    </div>
+</dialog>
+
+<div class="ef-tarjeta mt-4">
+    <h2 class="h6 fw-bold mb-3">Historial de correcciones</h2>
+    {% if historial %}
+    <ul class="ef-historial">
+        {% for h in historial %}
+        <li>
+            <strong>{{ h.usuario_nombre }}</strong>
+            <span class="text-secondary small">{{ h.fecha.strftime('%d/%m/%Y %H:%M') if h.fecha else '—' }}</span>
+            <div>{{ h.motivo }}</div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-secondary small mb-0">Esta factura todavía no ha sido corregida.</p>
+    {% endif %}
+</div>
+
+<div id="efToast" class="ef-toast">Cambios guardados</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/editar_factura.js') }}"></script>
+{% endblock %}
