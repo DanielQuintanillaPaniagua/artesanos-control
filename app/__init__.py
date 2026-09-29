@@ -42,11 +42,13 @@ def create_app():
     from app.routes.facturas import bp as facturas_bp
     from app.routes.facturas_ui import bp as facturas_ui_bp
     from app.routes.editar_factura import editar_factura_bp
+    from app.routes.admin import bp as admin_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(facturas_bp)
     app.register_blueprint(facturas_ui_bp)
     app.register_blueprint(editar_factura_bp)
+    app.register_blueprint(admin_bp)
 
     return app

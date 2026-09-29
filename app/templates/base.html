@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -27,6 +27,7 @@
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Artesanos" height="50">
             </div>
             <nav class="sidebar-nav">
+                {# ---- Comunes para todos ---- #}
                 <a href="{{ url_for('dashboard.index') }}"
                     class="sidebar-item {% if 'dashboard' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-speedometer2"></i> Dashboard
@@ -35,10 +36,28 @@
                     class="sidebar-item {% if 'facturas' in request.endpoint and 'new' not in request.endpoint %}active{% endif %}">
                     <i class="bi bi-file-earmark-text"></i> Facturas
                 </a>
+
+                {# ---- Solo empleados con sucursal activa: registrar factura ---- #}
+                {% if current_user.is_empleado() and current_user.sucursal and current_user.sucursal.estado == 'Activa' %}
                 <a href="{{ url_for('facturas_ui.create_page') }}"
                     class="sidebar-item {% if 'new' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-plus-circle"></i> Registrar factura
                 </a>
+                {% endif %}
+
+                {# ---- Solo owner: sucursales + administracion ---- #}
+                {% if current_user.is_owner() %}
+                <a href="{{ url_for('admin.sucursales') }}"
+                    class="sidebar-item {% if 'sucursales' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-shop"></i> Sucursales
+                </a>
+                <a href="{{ url_for('admin.index') }}"
+                    class="sidebar-item {% if request.endpoint == 'admin.index' %}active{% endif %}">
+                    <i class="bi bi-gear"></i> Administracion
+                </a>
+                {% endif %}
+
+                {# ---- Comunes: Artesanos AI ---- #}
                 <a href="#" class="sidebar-item">
                     <i class="bi bi-robot"></i> Artesanos AI
                 </a>

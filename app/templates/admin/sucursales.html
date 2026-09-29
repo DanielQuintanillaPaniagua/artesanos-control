@@ -1,0 +1,84 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Sucursales{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block body_content %}
+<div class="container-fluid py-4">
+
+    <div class="dash-head">
+        <div>
+            <h1><i class="bi bi-shop me-2"></i>Sucursales</h1>
+            <p>Administra las sucursales del negocio</p>
+        </div>
+        <a href="{{ url_for('admin.sucursal_nueva') }}" class="btn btn-success">
+            <i class="bi bi-plus-lg me-1"></i>Nueva sucursal
+        </a>
+    </div>
+
+    <section class="dash-panel">
+        <div class="dash-panel-head">
+            <h2>Listado de sucursales</h2>
+            <span class="tag">{{ sucursales_data|length }} sucursales</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Dirección</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th>Usuarios</th>
+                    <th>Facturas (mes)</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in sucursales_data %}
+                <tr>
+                    <td><span class="dash-suc-name">{{ item.obj.nombre }}</span></td>
+                    <td>{{ item.obj.direccion or '—' }}</td>
+                    <td>{{ item.obj.telefono or '—' }}</td>
+                    <td>
+                        {% if item.obj.estado == 'Activa' %}
+                            <span class="badge bg-success-subtle text-success">Activa</span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.usuarios }}</td>
+                    <td>{{ item.facturas_mes }}</td>
+                    <td class="text-center">
+                        <div class="d-flex gap-1 justify-content-center">
+                            <a href="{{ url_for('admin.sucursal_editar', sucursal_id=item.obj.id) }}"
+                               class="btn btn-sm btn-outline-primary" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('admin.sucursal_toggle_estado', sucursal_id=item.obj.id) }}"
+                                  class="d-inline"
+                                  onsubmit="return confirm('¿Cambiar estado de {{ item.obj.nombre }}?')">
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-{{ 'warning' if item.obj.estado == 'Activa' else 'success' }}"
+                                        title="{{ 'Desactivar' if item.obj.estado == 'Activa' else 'Activar' }}">
+                                    <i class="bi bi-{{ 'pause-circle' if item.obj.estado == 'Activa' else 'play-circle' }}"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        No hay sucursales registradas.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+</div>
+{% endblock %}

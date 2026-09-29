@@ -1,0 +1,147 @@
+﻿{% extends "base.html" %}
+
+{% block title %}{{ 'Nuevo usuario' if modo == 'nuevo' else 'Editar usuario' }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block body_content %}
+<div class="container-fluid py-4">
+
+    <div class="dash-head">
+        <div>
+            <h1>
+                <i class="bi bi-person-{{ 'plus' if modo == 'nuevo' else 'gear' }} me-2"></i>
+                {{ 'Nuevo usuario' if modo == 'nuevo' else 'Editar usuario' }}
+            </h1>
+            <p>{{ 'Crea una cuenta para un miembro del equipo' if modo == 'nuevo' else 'Modifica los datos del usuario' }}</p>
+        </div>
+        <a href="{{ url_for('admin.usuarios') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <section class="dash-panel">
+                <div class="dash-panel-head">
+                    <h2>Datos del usuario</h2>
+                </div>
+                <form method="POST" class="p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nombre completo *</label>
+                            <input type="text" name="nombre" class="form-control" required
+                                   value="{{ form_data.get('nombre') or (usuario.nombre if usuario else '') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Usuario (para login) *</label>
+                            <input type="text" name="usuario" class="form-control" required
+                                   value="{{ form_data.get('usuario') or (usuario.usuario if usuario else '') }}">
+                            <div class="form-text">Solo minúsculas, sin espacios.</div>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control"
+                                   value="{{ form_data.get('email') or (usuario.email if usuario and usuario.email else '') }}">
+                            <div class="form-text">Opcional. Útil para recuperar contraseña (próximamente).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Rol *</label>
+                            <select name="rol" id="rolSelect" class="form-select" required>
+                                {% set rol_actual = form_data.get('rol') or (usuario.rol if usuario else 'empleado') %}
+                                <option value="empleado" {% if rol_actual == 'empleado' %}selected{% endif %}>Empleado</option>
+                                <option value="owner" {% if rol_actual == 'owner' %}selected{% endif %}>Administrador (Owner)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="sucursalGroup">
+                            <label class="form-label">Sucursal *</label>
+                            <select name="sucursal_id" class="form-select">
+                                <option value="">— Selecciona —</option>
+                                {% set suc_actual = form_data.get('sucursal_id') or (usuario.sucursal_id if usuario else None) %}
+                                {% for s in sucursales %}
+                                <option value="{{ s.id }}" {% if suc_actual|string == s.id|string %}selected{% endif %}>
+                                    {{ s.nombre }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Los empleados deben tener sucursal. Los owners no.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                {{ 'Contraseña *' if modo == 'nuevo' else 'Nueva contraseña (opcional)' }}
+                            </label>
+                            <input type="password" name="password" class="form-control"
+                                   {% if modo == 'nuevo' %}required{% endif %}
+                                   placeholder="{{ 'Mínimo 6 caracteres' if modo == 'nuevo' else 'Dejar en blanco para no cambiar' }}">
+                        </div>
+
+                        {% if modo == 'editar' %}
+                        <div class="col-md-6">
+                            <label class="form-label">Estado</label>
+                            {% set estado_actual = form_data.get('estado') or usuario.estado %}
+                            <select name="estado" class="form-select">
+                                <option value="Activo" {% if estado_actual == 'Activo' %}selected{% endif %}>Activo</option>
+                                <option value="Inactivo" {% if estado_actual == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+                            </select>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <a href="{{ url_for('admin.usuarios') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg me-1"></i>
+                            {{ 'Crear usuario' if modo == 'nuevo' else 'Guardar cambios' }}
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <div class="col-lg-4">
+            <section class="dash-panel">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-info-circle me-2"></i>Ayuda</h2>
+                </div>
+                <div class="p-4">
+                    <p class="mb-2"><strong>Rol Empleado:</strong></p>
+                    <ul class="small mb-3">
+                        <li>Solo ve su sucursal</li>
+                        <li>Registra facturas</li>
+                        <li>No puede editar ni eliminar</li>
+                    </ul>
+
+                    <p class="mb-2"><strong>Rol Administrador:</strong></p>
+                    <ul class="small mb-3">
+                        <li>Ve todas las sucursales</li>
+                        <li>Edita facturas (con historial)</li>
+                        <li>Gestiona usuarios y sucursales</li>
+                    </ul>
+
+                    <div class="alert alert-warning small mb-0">
+                        <i class="bi bi-shield-lock me-1"></i>
+                        Las contraseñas se guardan hasheadas con <strong>scrypt</strong>.
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+</div>
+
+<script>
+// Ocultar sucursal si es owner
+document.addEventListener('DOMContentLoaded', function() {
+    const rol = document.getElementById('rolSelect');
+    const sucGroup = document.getElementById('sucursalGroup');
+    function toggle() {
+        sucGroup.style.display = rol.value === 'owner' ? 'none' : '';
+    }
+    rol.addEventListener('change', toggle);
+    toggle();
+});
+</script>
+{% endblock %}

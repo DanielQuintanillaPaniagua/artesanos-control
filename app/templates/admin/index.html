@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Panel de administración{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block body_content %}
+<div class="container-fluid py-4">
+
+    <div class="dash-head">
+        <div>
+            <h1><i class="bi bi-gear me-2"></i>Panel de administración</h1>
+            <p>Gestiona usuarios, sucursales, reportes y la configuración de tu negocio.</p>
+        </div>
+    </div>
+
+    {# ---------- Cards ---------- #}
+    <section class="dash-cards">
+        <div class="dash-card">
+            <div class="dash-card-top">
+                <span class="dash-card-ico"><i class="bi bi-person"></i></span>
+                Usuarios activos
+            </div>
+            <div class="dash-card-val">{{ usuarios_activos }}</div>
+            <small class="text-muted">de {{ total_usuarios }} en total</small>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-card-top">
+                <span class="dash-card-ico"><i class="bi bi-shop"></i></span>
+                Sucursales
+            </div>
+            <div class="dash-card-val">{{ total_sucursales }}</div>
+            <small class="text-muted">{{ sucursales_activas }} activas</small>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-card-top">
+                <span class="dash-card-ico"><i class="bi bi-file-earmark-text"></i></span>
+                Facturas (mes)
+            </div>
+            <div class="dash-card-val">{{ total_facturas_mes }}</div>
+            <small class="text-muted">del mes actual</small>
+        </div>
+
+        <div class="dash-card alert">
+            <div class="dash-card-top">
+                <span><i class="bi bi-exclamation-triangle"></i> Facturas observadas</span>
+            </div>
+            <div class="dash-card-val">{{ total_observadas }}</div>
+            <a href="{{ url_for('facturas_ui.list_page') }}" class="dash-card-link">
+                Ver facturas pendientes de revisión →
+            </a>
+        </div>
+    </section>
+
+    {# ---------- Usuarios + Sucursales (2 columnas) ---------- #}
+    <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+            <section class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-people me-2"></i>Usuarios del sistema</h2>
+                    <a href="{{ url_for('admin.usuarios') }}" class="tag">Ver todos →</a>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Sucursal</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in usuarios %}
+                        <tr>
+                            <td><span class="dash-suc-name">{{ u.nombre }}</span></td>
+                            <td>{{ u.usuario }}</td>
+                            <td>
+                                {% if u.rol == 'owner' %}
+                                    <span class="badge bg-dark">Admin</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Empleado</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ u.sucursal.nombre if u.sucursal else '—' }}</td>
+                            <td>
+                                {% if u.estado == 'Activo' %}
+                                    <span class="badge bg-success-subtle text-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Inactivo</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <div class="col-lg-5">
+            <section class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-shop me-2"></i>Sucursales</h2>
+                    <a href="{{ url_for('admin.sucursales') }}" class="tag">Ver todas →</a>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Estado</th>
+                            <th>Facturas (mes)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in sucursales_data %}
+                        <tr>
+                            <td>
+                                <span class="dash-suc-name">{{ item.obj.nombre }}</span><br>
+                                <small class="text-muted">{{ item.obj.direccion or '—' }}</small>
+                            </td>
+                            <td>
+                                {% if item.obj.estado == 'Activa' %}
+                                    <span class="badge bg-success-subtle text-success">Activa</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary">{{ item.obj.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.facturas_mes }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
