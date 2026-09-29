@@ -1,15 +1,206 @@
 ﻿{% extends "base.html" %}
 
-{% block title %}Dashboard - ARTESANOS CONTROL{% endblock %}
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
 
 {% block body_content %}
-<div class="container mt-5">
-    <div class="card">
-        <div class="card-body">
-            <h1>Bienvenido, {{ current_user.nombre }}</h1>
-            <p>Rol: {{ current_user.rol }}</p>
-            <a href="{{ url_for('auth.logout') }}" class="btn btn-danger">Cerrar sesion</a>
+<div class="container-fluid py-4">
+
+    {# ---------- Header ---------- #}
+    <div class="dash-head">
+        <div>
+            <h1>Dashboard</h1>
+            <p>
+                {% if current_user.is_owner() %}
+                    Resumen general de todas las sucursales
+                {% else %}
+                    Resumen de tu sucursal
+                {% endif %}
+            </p>
         </div>
+
+        {% if current_user.is_owner() %}
+        <div class="dropdown dash-sucursal-dropdown">
+            <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-shop icono"></i>
+                <span class="texto">
+                    <span class="label">Sucursal:</span>
+                    <span class="valor">
+                        {% if sucursal_filtro %}
+                            {% for s in sucursales %}{% if s.id == sucursal_filtro %}{{ s.nombre }}{% endif %}{% endfor %}
+                        {% else %}
+                            Todas las sucursales
+                        {% endif %}
+                    </span>
+                </span>
+                <i class="bi bi-chevron-down chevron"></i>
+            </button>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item {% if not sucursal_filtro %}active{% endif %}"
+                       href="{{ url_for('dashboard.index') }}">
+                        Todas las sucursales
+                    </a>
+                </li>
+                {% for s in sucursales %}
+                <li>
+                    <a class="dropdown-item {% if sucursal_filtro == s.id %}active{% endif %}"
+                       href="{{ url_for('dashboard.index', sucursal=s.id) }}">
+                        {{ s.nombre }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <span class="dash-badge-suc">
+            Sucursal: <b>{{ current_user.sucursal.nombre if current_user.sucursal else '—' }}</b>
+        </span>
+        {% endif %}
     </div>
+
+    {# ---------- Cards ---------- #}
+    <section class="dash-cards">
+        <div class="dash-card">
+            <div class="dash-card-top">
+                <span class="dash-card-ico"><i class="bi bi-receipt"></i></span>
+                Facturas del mes
+            </div>
+            <div class="dash-card-val">{{ metricas.total_facturas }}</div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-card-top">
+                <span class="dash-card-ico"><i class="bi bi-currency-dollar"></i></span>
+                Total
+            </div>
+            <div class="dash-card-val">${{ '{:,.2f}'.format(metricas.total_monto) }}</div>
+        </div>
+
+        <div class="dash-card">
+            <div class="dash-card-top">
+                <span class="dash-card-ico"><i class="bi bi-check-circle"></i></span>
+                Validadas
+            </div>
+            <div class="dash-card-val">{{ metricas.validadas }}</div>
+        </div>
+
+        <div class="dash-card alert">
+            <div class="dash-card-top">
+                <span><i class="bi bi-exclamation-triangle"></i> Observadas</span>
+            </div>
+            <div class="dash-card-val">{{ metricas.observadas }}</div>
+            <a href="{{ url_for('facturas_ui.list_page') }}" class="dash-card-link">
+                Ver facturas pendientes de revisión →
+            </a>
+        </div>
+    </section>
+
+    {# ---------- Tabla por sucursal (solo owner) ---------- #}
+    {% if current_user.is_owner() and metricas.por_sucursal %}
+    <section class="dash-panel">
+        <div class="dash-panel-head">
+            <h2>Desempeño por sucursal</h2>
+            <span class="tag"><i class="bi bi-bar-chart"></i> Comparativa del mes actual</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sucursal</th>
+                    <th>Total facturas</th>
+                    <th>Total monto</th>
+                    <th>Validadas</th>
+                    <th>Observadas</th>
+                    <th>% validación</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in metricas.por_sucursal %}
+                <tr>
+                    <td><span class="dash-suc-name">{{ s.nombre }}</span></td>
+                    <td>{{ s.total_facturas }}</td>
+                    <td>${{ '{:,.2f}'.format(s.total_monto) }}</td>
+                    <td class="dash-ok">{{ s.validadas }}</td>
+                    <td class="dash-obs">{{ s.observadas }}</td>
+                    <td>{{ '%.1f'|format(s.porcentaje) }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {# ---------- Tabla simplificada (empleado) ---------- #}
+    {% if current_user.is_empleado() %}
+    <section class="dash-panel">
+        <div class="dash-panel-head">
+            <h2>Desempeño de la sucursal</h2>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sucursal</th>
+                    <th>Total facturas</th>
+                    <th>Total monto</th>
+                    <th>Validadas</th>
+                    <th>Observadas</th>
+                    <th>% validación</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="dash-suc-name">{{ current_user.sucursal.nombre if current_user.sucursal else '—' }}</span></td>
+                    <td>{{ metricas.total_facturas }}</td>
+                    <td>${{ '{:,.2f}'.format(metricas.total_monto) }}</td>
+                    <td class="dash-ok">{{ metricas.validadas }}</td>
+                    <td class="dash-obs">{{ metricas.observadas }}</td>
+                    <td>{{ '%.1f'|format(metricas.porcentaje) }}%</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    {# ---------- Charts ---------- #}
+    <section class="dash-charts">
+        <div class="dash-chart-card">
+            <h2>Facturas por categoría</h2>
+            <div class="dash-donut-wrap">
+                <div class="dash-donut" style="background: {{ metricas.donut_gradient }};"></div>
+                <ul class="dash-legend">
+                    {% for c in metricas.por_categoria %}
+                    <li>
+                        <span class="dash-dot" style="background: {{ c.color }};"></span>
+                        {{ c.nombre }} <b>{{ '%.0f'|format(c.porcentaje) }}%</b>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="dash-chart-card">
+            <h2>Facturas por día</h2>
+            <svg class="dash-line-svg" viewBox="0 0 560 180" preserveAspectRatio="none">
+                <line x1="0" y1="10" x2="560" y2="10" stroke="#eef1ef" stroke-width="1" />
+                <line x1="0" y1="55" x2="560" y2="55" stroke="#eef1ef" stroke-width="1" />
+                <line x1="0" y1="100" x2="560" y2="100" stroke="#eef1ef" stroke-width="1" />
+                <line x1="0" y1="145" x2="560" y2="145" stroke="#eef1ef" stroke-width="1" />
+                {% if metricas.linea_puntos %}
+                <polyline points="{{ metricas.linea_puntos }}" fill="none" stroke="#1f6b45"
+                    stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                {% for p in metricas.linea_circulos %}
+                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="4" fill="#1f6b45" />
+                {% endfor %}
+                {% endif %}
+            </svg>
+            <div class="dash-line-days">
+                <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+            </div>
+        </div>
+    </section>
+
 </div>
 {% endblock %}
