@@ -1,0 +1,105 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Mi perfil{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block body_content %}
+<div class="container-fluid py-4">
+
+    <div class="dash-head">
+        <div>
+            <h1><i class="bi bi-person-circle me-2"></i>Mi perfil</h1>
+            <p>Consulta tu informacion y cambia tu contrasena</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {# ---- Datos del usuario ---- #}
+        <div class="col-lg-5">
+            <section class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h2>Informacion personal</h2>
+                </div>
+                <div class="p-4">
+                    <div class="mb-3">
+                        <label class="text-muted small">Nombre completo</label>
+                        <div class="fw-bold">{{ usuario.nombre }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Usuario</label>
+                        <div class="fw-bold">{{ usuario.usuario }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Email</label>
+                        <div class="fw-bold">{{ usuario.email or '—' }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Rol</label>
+                        <div>
+                            {% if usuario.rol == 'owner' %}
+                                <span class="badge bg-dark">Administrador</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Empleado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Sucursal</label>
+                        <div class="fw-bold">{{ usuario.sucursal.nombre if usuario.sucursal else 'Todas las sucursales' }}</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="text-muted small">Estado</label>
+                        <div>
+                            {% if usuario.estado == 'Activo' %}
+                                <span class="badge bg-success-subtle text-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary">Inactivo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        {# ---- Cambiar contraseña ---- #}
+        <div class="col-lg-7">
+            <section class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-shield-lock me-2"></i>Cambiar contrasena</h2>
+                </div>
+                <form method="POST" action="{{ url_for('perfil.cambiar_password') }}" class="p-4">
+                    <div class="mb-3">
+                        <label class="form-label">Contrasena actual *</label>
+                        <input type="password" name="actual" class="form-control" required
+                               autocomplete="current-password" placeholder="Tu contrasena actual">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nueva contrasena *</label>
+                        <input type="password" name="nueva" class="form-control" required minlength="6"
+                               autocomplete="new-password" placeholder="Minimo 6 caracteres">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirmar nueva contrasena *</label>
+                        <input type="password" name="confirmar" class="form-control" required minlength="6"
+                               autocomplete="new-password" placeholder="Repetir la nueva contrasena">
+                    </div>
+
+                    <div class="alert alert-info small mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Si cambias tu contrasena, se guardara hasheada con <strong>scrypt</strong>.
+                        No la compartas con nadie.
+                    </div>
+
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-lg me-1"></i>Cambiar contrasena
+                    </button>
+                </form>
+            </section>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
