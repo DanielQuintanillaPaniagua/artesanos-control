@@ -138,5 +138,127 @@
         </div>
     </div>
 
+    {# ---------- Reportes + Acciones rapidas (2 columnas) ---------- #}
+    <div class="row g-4">
+
+        {# ---- Reportes ---- #}
+        <div class="col-lg-7">
+            <section class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-bar-chart me-2"></i>Reportes</h2>
+                    <a href="{{ url_for('admin.reportes') }}" class="tag">Ver todos →</a>
+                </div>
+                <div class="p-4">
+                    <p class="text-muted small mb-3">Genera y descarga reportes de tu negocio.</p>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('admin.reportes') }}" class="reporte-card">
+                                <div class="reporte-ico"><i class="bi bi-file-earmark-text"></i></div>
+                                <div>
+                                    <div class="reporte-titulo">Reporte de facturas</div>
+                                    <div class="reporte-desc">Resumen de facturas por rango de fechas, sucursal o proveedor.</div>
+                                </div>
+                                <i class="bi bi-chevron-right reporte-arrow"></i>
+                            </a>
+                        </div>
+
+                        <div class="col-md-6">
+                            <a href="{{ url_for('admin.reportes') }}" class="reporte-card">
+                                <div class="reporte-ico"><i class="bi bi-graph-up"></i></div>
+                                <div>
+                                    <div class="reporte-titulo">Reporte de gastos</div>
+                                    <div class="reporte-desc">Análisis de gastos por categoría y sucursal.</div>
+                                </div>
+                                <i class="bi bi-chevron-right reporte-arrow"></i>
+                            </a>
+                        </div>
+
+                        <div class="col-md-6">
+                            <a href="{{ url_for('admin.reportes') }}" class="reporte-card">
+                                <div class="reporte-ico"><i class="bi bi-shop"></i></div>
+                                <div>
+                                    <div class="reporte-titulo">Reporte por sucursal</div>
+                                    <div class="reporte-desc">Comparativo de desempeño entre sucursales.</div>
+                                </div>
+                                <i class="bi bi-chevron-right reporte-arrow"></i>
+                            </a>
+                        </div>
+
+                        <div class="col-md-6">
+                            <a href="{{ url_for('admin.reportes') }}" class="reporte-card">
+                                <div class="reporte-ico"><i class="bi bi-people"></i></div>
+                                <div>
+                                    <div class="reporte-titulo">Reporte de usuarios</div>
+                                    <div class="reporte-desc">Actividad y permisos de usuarios del sistema.</div>
+                                </div>
+                                <i class="bi bi-chevron-right reporte-arrow"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        {# ---- Acciones rapidas ---- #}
+        <div class="col-lg-5">
+            <section class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-lightning-charge me-2"></i>Acciones rápidas</h2>
+                </div>
+                <div class="p-4">
+                    <p class="text-muted small mb-3">Tareas frecuentes de administración.</p>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('admin.usuario_nuevo') }}" class="accion-card">
+                                <div class="accion-ico"><i class="bi bi-person-plus"></i></div>
+                                <div>
+                                    <div class="accion-titulo">Crear usuario</div>
+                                    <div class="accion-desc">Agregar un nuevo usuario al sistema.</div>
+                                </div>
+                                <i class="bi bi-chevron-right accion-arrow"></i>
+                            </a>
+                        </div>
+
+                        <div class="col-md-6">
+                            <a href="{{ url_for('admin.sucursal_nueva') }}" class="accion-card">
+                                <div class="accion-ico"><i class="bi bi-shop-window"></i></div>
+                                <div>
+                                    <div class="accion-titulo">Crear sucursal</div>
+                                    <div class="accion-desc">Registrar una nueva sucursal.</div>
+                                </div>
+                                <i class="bi bi-chevron-right accion-arrow"></i>
+                            </a>
+                        </div>
+
+                        <div class="col-md-6">
+                            <a href="{{ url_for('admin.reportes') }}" class="accion-card">
+                                <div class="accion-ico"><i class="bi bi-file-earmark-bar-graph"></i></div>
+                                <div>
+                                    <div class="accion-titulo">Generar reporte</div>
+                                    <div class="accion-desc">Selecciona el tipo de reporte que necesitas.</div>
+                                </div>
+                                <i class="bi bi-chevron-right accion-arrow"></i>
+                            </a>
+                        </div>
+
+                        <div class="col-md-6">
+                            <a href="#" class="accion-card" onclick="alert('Próximamente'); return false;">
+                                <div class="accion-ico"><i class="bi bi-gear"></i></div>
+                                <div>
+                                    <div class="accion-titulo">Configuración</div>
+                                    <div class="accion-desc">Ajustes generales y preferencias.</div>
+                                </div>
+                                <i class="bi bi-chevron-right accion-arrow"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+    </div>
+
 </div>
 {% endblock %}

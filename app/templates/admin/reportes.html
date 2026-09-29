@@ -1,0 +1,150 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Reportes{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block body_content %}
+<div class="container-fluid py-4">
+
+    <div class="dash-head">
+        <div>
+            <h1><i class="bi bi-bar-chart me-2"></i>Reportes</h1>
+            <p>Genera y descarga reportes del negocio en formato CSV (abre en Excel)</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        {# ---- Reporte de facturas ---- #}
+        <div class="col-lg-6">
+            <section class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-file-earmark-text me-2"></i>Reporte de facturas</h2>
+                </div>
+                <form method="GET" action="{{ url_for('admin.reporte_facturas_csv') }}" class="p-4">
+                    <p class="text-muted small mb-3">
+                        Resumen de facturas por rango de fechas, sucursal y estado.
+                    </p>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Desde</label>
+                            <input type="date" name="desde" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Hasta</label>
+                            <input type="date" name="hasta" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Sucursal</label>
+                            <select name="sucursal" class="form-select form-select-sm">
+                                <option value="">Todas</option>
+                                {% for s in sucursales %}
+                                <option value="{{ s.id }}">{{ s.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Estado</label>
+                            <select name="estado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="Validada">Validada</option>
+                                <option value="Observada">Observada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-download me-1"></i>Descargar CSV
+                    </button>
+                </form>
+            </section>
+        </div>
+
+        {# ---- Reporte de usuarios ---- #}
+        <div class="col-lg-6">
+            <section class="dash-panel h-100">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-people me-2"></i>Reporte de usuarios</h2>
+                </div>
+                <form method="GET" action="{{ url_for('admin.reporte_usuarios_csv') }}" class="p-4">
+                    <p class="text-muted small mb-3">
+                        Listado de usuarios con rol, sucursal y estado.
+                    </p>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small">Rol</label>
+                            <select name="rol" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="owner">Administrador</option>
+                                <option value="empleado">Empleado</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Sucursal</label>
+                            <select name="sucursal" class="form-select form-select-sm">
+                                <option value="">Todas</option>
+                                {% for s in sucursales %}
+                                <option value="{{ s.id }}">{{ s.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Estado</label>
+                            <select name="estado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-download me-1"></i>Descargar CSV
+                    </button>
+                </form>
+            </section>
+        </div>
+
+        {# ---- Reporte de sucursales ---- #}
+        <div class="col-lg-6">
+            <section class="dash-panel">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-shop me-2"></i>Reporte de sucursales</h2>
+                </div>
+                <div class="p-4">
+                    <p class="text-muted small mb-3">
+                        Listado de sucursales con usuarios y facturas del mes actual.
+                    </p>
+                    <a href="{{ url_for('admin.reporte_sucursales_csv') }}" class="btn btn-success btn-sm">
+                        <i class="bi bi-download me-1"></i>Descargar CSV
+                    </a>
+                </div>
+            </section>
+        </div>
+
+        {# ---- Info ---- #}
+        <div class="col-lg-6">
+            <section class="dash-panel">
+                <div class="dash-panel-head">
+                    <h2><i class="bi bi-info-circle me-2"></i>Información</h2>
+                </div>
+                <div class="p-4">
+                    <ul class="small mb-0">
+                        <li>Los archivos son <strong>CSV delimitados por punto y coma (;)</strong></li>
+                        <li>Se abren directamente en <strong>Excel</strong></li>
+                        <li>Codificación <strong>UTF-8 con BOM</strong> (tildes y ñ funcionan)</li>
+                        <li>Los filtros se aplican al archivo descargado</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

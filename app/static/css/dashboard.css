@@ -422,3 +422,77 @@
     background-color: #1f6b45;
     color: #fff;
 }
+
+/* ============================================
+   REPORTES Y ACCIONES RAPIDAS - Cards
+   ============================================ */
+
+.reporte-card, .accion-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    background: #fff;
+    border: 1px solid var(--dash-linea);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.15s;
+    position: relative;
+    height: 100%;
+}
+
+.reporte-card:hover, .accion-card:hover {
+    border-color: var(--dash-verde-600);
+    box-shadow: 0 2px 8px rgba(31, 107, 69, 0.1);
+    transform: translateY(-1px);
+    color: inherit;
+}
+
+.reporte-ico, .accion-ico {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--dash-verde-100);
+    color: var(--dash-verde-600);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.accion-ico {
+    background: #e8f4ff;
+    color: #2f6f8f;
+}
+
+.reporte-titulo, .accion-titulo {
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--dash-tinta);
+    margin-bottom: 2px;
+}
+
+.reporte-desc, .accion-desc {
+    font-size: 11.5px;
+    color: var(--dash-gris);
+    line-height: 1.3;
+}
+
+.reporte-arrow, .accion-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--dash-gris);
+    font-size: 12px;
+    opacity: 0.5;
+    transition: all 0.15s;
+}
+
+.reporte-card:hover .reporte-arrow, .accion-card:hover .accion-arrow {
+    color: var(--dash-verde-600);
+    opacity: 1;
+    right: 8px;
+}

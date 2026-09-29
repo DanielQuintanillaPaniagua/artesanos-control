@@ -51,9 +51,21 @@
                     class="sidebar-item {% if 'sucursales' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-shop"></i> Sucursales
                 </a>
+                <a href="{{ url_for('admin.reportes') }}"
+                    class="sidebar-item {% if 'reportes' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-bar-chart"></i> Reportes
+                </a>
                 <a href="{{ url_for('admin.index') }}"
                     class="sidebar-item {% if request.endpoint == 'admin.index' %}active{% endif %}">
                     <i class="bi bi-gear"></i> Administracion
+                </a>
+                {% endif %}
+
+                {# ---- Solo owner: Mi perfil ---- #}
+                {% if current_user.is_owner() %}
+                <a href="{{ url_for('perfil.index') }}"
+                    class="sidebar-item {% if 'perfil' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-person-circle"></i> Mi perfil
                 </a>
                 {% endif %}
 
@@ -63,12 +75,22 @@
                 </a>
             </nav>
             <div class="sidebar-user">
-                <i class="bi bi-person-circle"></i>
-                <div>
-                    <strong>{{ current_user.nombre }}</strong>
-                    <small>{{ current_user.rol|capitalize }}{% if current_user.sucursal %} · {{
-                        current_user.sucursal.nombre }}{% endif %}</small>
+                {% if current_user.is_owner() %}
+                <a href="{{ url_for('perfil.index') }}" class="sidebar-user-link" title="Mi perfil">
+                {% else %}
+                <div class="sidebar-user-link" style="cursor:default;">
+                {% endif %}
+                    <i class="bi bi-person-circle"></i>
+                    <div>
+                        <strong>{{ current_user.nombre }}</strong>
+                        <small>{{ current_user.rol|capitalize }}{% if current_user.sucursal %} · {{
+                            current_user.sucursal.nombre }}{% endif %}</small>
+                    </div>
+                {% if current_user.is_owner() %}
+                </a>
+                {% else %}
                 </div>
+                {% endif %}
                 <a href="{{ url_for('auth.logout') }}" title="Cerrar sesion"><i class="bi bi-box-arrow-right"></i></a>
             </div>
         </aside>
