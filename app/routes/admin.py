@@ -1,6 +1,8 @@
-from flask import Blueprint, render_template, abort, request, redirect, url_for, flash
+from flask import Blueprint, render_template, abort, request, redirect, url_for, flash, Response
+import csv
+import io
 from flask_login import login_required, current_user
-from datetime import date
+from datetime import date, datetime
 
 from app import db
 from app.models.user import User
@@ -230,6 +232,32 @@ def usuario_toggle_estado(user_id):
     return redirect(url_for('admin.usuarios'))
 
 
+@bp.route('/usuarios/<int:user_id>/resetear-password', methods=['POST'])
+@login_required
+def usuario_resetear_password(user_id):
+    _solo_owner()
+    u = User.query.get_or_404(user_id)
+
+    password = (request.form.get('password') or '').strip()
+    confirmar = (request.form.get('confirmar') or '').strip()
+
+    errores = []
+    if len(password) < 6:
+        errores.append('La contrasena debe tener al menos 6 caracteres.')
+    if password != confirmar:
+        errores.append('Las contrasenas no coinciden.')
+
+    if errores:
+        for e in errores:
+            flash(e, 'danger')
+        return redirect(url_for('admin.usuarios'))
+
+    u.set_password(password)
+    db.session.commit()
+
+    flash(f'Contrasena de "{u.nombre}" actualizada correctamente.', 'success')
+    return redirect(url_for('admin.usuarios'))
+
 # ==================================================
 # SUCURSALES
 # ==================================================
@@ -369,3 +397,154 @@ def sucursal_toggle_estado(sucursal_id):
 
     flash(f'Sucursal "{s.nombre}" ahora esta {s.estado.lower()}.', 'success')
     return redirect(url_for('admin.sucursales'))
+
+
+# ==================================================
+# REPORTES CSV
+# ==================================================
+def _csv_response(rows, headers, filename):
+    """Genera una respuesta CSV descargable con BOM UTF-8 (compatible Excel)."""
+    output = io.StringIO()
+    output.write('\ufeff')  # BOM para Excel
+    writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(row)
+
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv; charset=utf-8',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"'
+        }
+    )
+
+
+@bp.route('/reportes')
+@login_required
+def reportes():
+    _solo_owner()
+    sucursales = Sucursal.query.order_by(Sucursal.nombre).all()
+    return render_template('admin/reportes.html', sucursales=sucursales)
+
+
+@bp.route('/reportes/facturas.csv')
+@login_required
+def reporte_facturas_csv():
+    _solo_owner()
+
+    desde_str = (request.args.get('desde') or '').strip()
+    hasta_str = (request.args.get('hasta') or '').strip()
+    sucursal_id = request.args.get('sucursal', type=int)
+    estado = (request.args.get('estado') or '').strip()
+
+    query = Factura.query
+
+    if desde_str:
+        try:
+            desde = datetime.strptime(desde_str, '%Y-%m-%d').date()
+            query = query.filter(Factura.fecha >= desde)
+        except ValueError:
+            pass
+    if hasta_str:
+        try:
+            hasta = datetime.strptime(hasta_str, '%Y-%m-%d').date()
+            query = query.filter(Factura.fecha <= hasta)
+        except ValueError:
+            pass
+    if sucursal_id:
+        query = query.filter(Factura.sucursal_id == sucursal_id)
+    if estado:
+        query = query.filter(Factura.estado == estado)
+
+    facturas = query.order_by(Factura.fecha.desc(), Factura.id.desc()).all()
+
+    headers = ['ID', 'Numero Factura', 'Fecha', 'Proveedor', 'Sucursal',
+               'Usuario', 'Tipo Doc', 'Total', 'Estado', 'Observacion']
+    rows = []
+    for f in facturas:
+        rows.append([
+            f.id,
+            f.numero_factura or '',
+            f.fecha.strftime('%d/%m/%Y') if f.fecha else '',
+            f.proveedor.nombre if f.proveedor else '',
+            f.sucursal.nombre if f.sucursal else '',
+            f.usuario.nombre if f.usuario else '',
+            f.tipo_documento or '',
+            f'{f.total_factura:.2f}' if f.total_factura else '0.00',
+            f.estado or '',
+            (f.observacion or '').replace('\n', ' ').replace('\r', ''),
+        ])
+
+    fecha_str = date.today().strftime('%Y%m%d')
+    return _csv_response(rows, headers, f'facturas_{fecha_str}.csv')
+
+
+@bp.route('/reportes/usuarios.csv')
+@login_required
+def reporte_usuarios_csv():
+    _solo_owner()
+
+    rol = (request.args.get('rol') or '').strip()
+    sucursal_id = request.args.get('sucursal', type=int)
+    estado = (request.args.get('estado') or '').strip()
+
+    query = User.query
+    if rol:
+        query = query.filter(User.rol == rol)
+    if sucursal_id:
+        query = query.filter(User.sucursal_id == sucursal_id)
+    if estado:
+        query = query.filter(User.estado == estado)
+
+    usuarios = query.order_by(User.nombre).all()
+
+    headers = ['ID', 'Nombre', 'Usuario', 'Email', 'Rol', 'Sucursal', 'Estado']
+    rows = []
+    for u in usuarios:
+        rows.append([
+            u.id,
+            u.nombre or '',
+            u.usuario or '',
+            u.email or '',
+            u.rol or '',
+            u.sucursal.nombre if u.sucursal else 'Todas',
+            u.estado or '',
+        ])
+
+    fecha_str = date.today().strftime('%Y%m%d')
+    return _csv_response(rows, headers, f'usuarios_{fecha_str}.csv')
+
+
+@bp.route('/reportes/sucursales.csv')
+@login_required
+def reporte_sucursales_csv():
+    _solo_owner()
+
+    hoy = date.today()
+    inicio_mes = hoy.replace(day=1)
+
+    headers = ['ID', 'Nombre', 'Direccion', 'Telefono', 'Estado',
+               'Usuarios', 'Facturas del mes', 'Monto del mes']
+    rows = []
+    for s in Sucursal.query.order_by(Sucursal.nombre).all():
+        facturas_suc = Factura.query.filter(
+            Factura.fecha >= inicio_mes,
+            Factura.sucursal_id == s.id,
+        ).all()
+        usuarios_suc = User.query.filter_by(sucursal_id=s.id).count()
+        monto = sum((f.total_factura or 0) for f in facturas_suc)
+
+        rows.append([
+            s.id,
+            s.nombre or '',
+            s.direccion or '',
+            s.telefono or '',
+            s.estado or '',
+            usuarios_suc,
+            len(facturas_suc),
+            f'{monto:.2f}',
+        ])
+
+    fecha_str = date.today().strftime('%Y%m%d')
+    return _csv_response(rows, headers, f'sucursales_{fecha_str}.csv')

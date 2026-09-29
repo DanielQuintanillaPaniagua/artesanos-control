@@ -183,3 +183,23 @@
         padding: 16px !important;
     }
 }
+
+/* ===== Link del usuario en el sidebar ===== */
+.sidebar-user-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+    flex: 1;
+    transition: opacity 0.15s;
+}
+
+.sidebar-user-link:hover {
+    opacity: 0.8;
+    color: inherit;
+}
+
+.sidebar-user-link:hover strong {
+    color: #fff;
+}
