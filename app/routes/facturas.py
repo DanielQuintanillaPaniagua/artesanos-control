@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+﻿from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date
 from app import db
@@ -9,6 +9,17 @@ from app.models.categoria import Categoria
 from app.services.validacion import validar_factura
 
 bp = Blueprint('facturas', __name__, url_prefix='/api/facturas')
+
+
+def _sucursal_activa(user):
+    """Verifica que el usuario tenga sucursal activa."""
+    if not user.is_empleado():
+        return False, 'Solo los empleados pueden registrar facturas'
+    if not user.sucursal_id:
+        return False, 'Tu cuenta no tiene una sucursal asignada'
+    if not user.sucursal or user.sucursal.estado != 'Activa':
+        return False, 'Tu sucursal esta inactiva. No podes registrar facturas'
+    return True, None
 
 
 @bp.route('/', methods=['GET'])
@@ -40,6 +51,11 @@ def get_factura(id):
 @bp.route('/', methods=['POST'])
 @login_required
 def create_factura():
+    # === BLOQUEO: empleado con sucursal activa ===
+    ok, error = _sucursal_activa(current_user)
+    if not ok:
+        return jsonify({'success': False, 'error': error}), 403
+
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'error': 'No se enviaron datos'}), 400
@@ -132,10 +148,17 @@ def list_proveedores():
         'success': True,
         'proveedores': [p.to_dict() for p in proveedores]
     })
+
+
 @bp.route('/proveedores', methods=['POST'])
 @login_required
 def create_proveedor():
     """Crea un proveedor nuevo desde el formulario de facturas."""
+    # === BLOQUEO: empleado con sucursal activa ===
+    ok, error = _sucursal_activa(current_user)
+    if not ok:
+        return jsonify({'success': False, 'error': error}), 403
+
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'error': 'No se enviaron datos'}), 400
@@ -147,7 +170,6 @@ def create_proveedor():
     if not nombre:
         return jsonify({'success': False, 'error': 'El nombre es obligatorio'}), 400
 
-    # Verificar duplicado
     existente = Proveedor.query.filter(
         Proveedor.nombre.ilike(nombre)
     ).first()
@@ -172,4 +194,3 @@ def create_proveedor():
         'message': f'Proveedor "{nombre}" creado',
         'proveedor': proveedor.to_dict()
     }), 201
-    

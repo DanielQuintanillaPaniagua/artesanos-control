@@ -435,3 +435,59 @@
         justify-content: center;
     }
 }
+
+/* ============================================
+   BARRA DE FILTROS DEL LISTADO
+   ============================================ */
+.filtros-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e5e9e6;
+    border-radius: 12px;
+}
+
+.filtro-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+}
+
+.filtro-label {
+    font-size: 12px;
+    color: #6b7688;
+    font-weight: 600;
+}
+
+.filtro-acciones {
+    flex-direction: row;
+    align-items: flex-end;
+    min-width: auto;
+    gap: 8px;
+}
+
+.presets-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.presets-bar .btn {
+    font-size: 12px;
+    padding: 4px 12px;
+}
+
+@media (max-width: 768px) {
+    .filtros-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filtro-grupo {
+        min-width: 100%;
+    }
+}
