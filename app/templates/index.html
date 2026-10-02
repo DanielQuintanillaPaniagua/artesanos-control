@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Artesanos AI · Artesanos Control</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/artesanos-ai.css') }}">
+</head>
+
+<body>
+    <div class="app">
+
+        <!-- ============ SIDEBAR ============ -->
+        <aside class="sidebar">
+            <div class="brand">
+                <!-- Reemplaza este bloque por tu logo real: <img src="logo.png" alt="Artesanos Pizzería"> -->
+                <div class="brand__logo" aria-hidden="true">
+                    <svg viewBox="0 0 100 100" width="100%" height="100%">
+                        <circle cx="50" cy="50" r="48" fill="#fff" />
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#14452f" stroke-width="2" />
+                        <path d="M50 14c4 12 22 20 22 40a22 22 0 0 1-44 0c0-12 8-16 12-26 4 6 6 8 10-14z"
+                            fill="#e63329" />
+                        <circle cx="43" cy="58" r="4" fill="#fff" />
+                        <circle cx="57" cy="58" r="4" fill="#fff" />
+                        <circle cx="50" cy="68" r="4" fill="#fff" />
+                    </svg>
+                </div>
+                <span class="brand__name">ARTESANOS<br>CONTROL</span>
+            </div>
+
+            <nav class="nav" aria-label="Principal">
+                <a class="nav__item" href="#">
+                    <svg viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12 3 3 10.5V21h6.5v-6h5v6H21V10.5z" />
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a class="nav__item" href="#">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                        <path d="M14 3v5h5M9 13h6M9 17h6" />
+                    </svg>
+                    <span>Facturas</span>
+                </a>
+                <a class="nav__item" href="#">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 8v8M8 12h8" />
+                    </svg>
+                    <span>Registrar factura</span>
+                </a>
+                <a class="nav__item" href="#">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z" />
+                        <circle cx="12" cy="9.5" r="2.5" />
+                    </svg>
+                    <span>Sucursales</span>
+                </a>
+                <a class="nav__item is-active" href="#" aria-current="page">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="5" y="5" width="14" height="14" rx="2" />
+                        <path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" /><text x="12" y="15"
+                            font-size="6.5" font-weight="800" text-anchor="middle" fill="currentColor"
+                            stroke="none">AI</text>
+                    </svg>
+                    <span>Artesanos AI</span>
+                </a>
+            </nav>
+
+            <div class="sidebar__user">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 21a8 8 0 0 1 16 0z" />
+                </svg>
+                <span>Administrador</span>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m6 9 6 6 6-6" />
+                </svg>
+            </div>
+        </aside>
+
+        <!-- ============ CONTENIDO ============ -->
+        <main class="main">
+
+            <header class="topbar">
+                <button class="branch-select" type="button">
+                    <svg class="branch-select__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 9 5.5 4h13L20 9" />
+                        <path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9" />
+                        <path d="M5 12v8h14v-8M10 20v-4h4v4" />
+                    </svg>
+                    <span class="branch-select__text">
+                        <small>Sucursal:</small>
+                        <strong>Todas las sucursales</strong>
+                    </span>
+                    <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                    </svg>
+                </button>
+            </header>
+
+            <section class="chat">
+
+                <div class="chat__head">
+                    <div class="ai-badge ai-badge--lg" aria-hidden="true">AI</div>
+                    <div>
+                        <h1>Artesanos AI</h1>
+                        <p>Tu asistente inteligente para consultas, reportes y análisis de tu negocio.</p>
+                    </div>
+                </div>
+
+                <div class="messages">
+
+                    <!-- Usuario 1 -->
+                    <div class="msg msg--user">
+                        <div class="msg__col">
+                            <div class="bubble">¿Cuánto se gastó en bebidas este mes?</div>
+                            <time>Hoy, 10:24 a. m.</time>
+                        </div>
+                        <div class="avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round">
+                                <circle cx="12" cy="8" r="4" />
+                                <path d="M4 21a8 8 0 0 1 16 0z" />
+                            </svg></div>
+                    </div>
+
+                    <!-- IA 1 -->
+                    <div class="msg msg--ai">
+                        <div class="ai-badge" aria-hidden="true">AI</div>
+                        <div class="msg__col">
+                            <div class="bubble">
+                                <p>En el mes <strong>actual</strong>, el gasto en bebidas fue de
+                                    <strong>$6,420.75</strong> en total, distribuidos de la siguiente manera:
+                                </p>
+                                <ul class="breakdown">
+                                    <li><span>San Salvador:</span> <strong>$2,480.30</strong> <em>(38.6%)</em></li>
+                                    <li><span>Usulután:</span> <strong>$1,890.20</strong> <em>(29.4%)</em></li>
+                                    <li><span>San Miguel:</span> <strong>$2,050.25</strong> <em>(31.9%)</em></li>
+                                </ul>
+                                <p>Este monto representa el 15.1% del total de gastos del mes ($42,580.00).</p>
+                            </div>
+                            <time>Hoy, 10:24 a. m.</time>
+                        </div>
+                    </div>
+
+                    <!-- Usuario 2 -->
+                    <div class="msg msg--user">
+                        <div class="msg__col">
+                            <div class="bubble">¿Y cuál fue el proveedor con mayor gasto en bebidas?</div>
+                            <time>Hoy, 10:26 a. m.</time>
+                        </div>
+                        <div class="avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" stroke-linecap="round">
+                                <circle cx="12" cy="8" r="4" />
+                                <path d="M4 21a8 8 0 0 1 16 0z" />
+                            </svg></div>
+                    </div>
+
+                    <!-- IA 2 -->
+                    <div class="msg msg--ai">
+                        <div class="ai-badge" aria-hidden="true">AI</div>
+                        <div class="msg__col">
+                            <div class="bubble">
+                                <p>El proveedor con mayor gasto en bebidas este mes fue <strong>Distribuidora La
+                                        Central</strong>, con un total de <strong>$2,850.40</strong>, equivalente al
+                                    <strong>44.3%</strong> del gasto en bebidas.
+                                </p>
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Proveedor</th>
+                                                <th>Total en bebidas</th>
+                                                <th>% del gasto</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Distribuidora La Central</td>
+                                                <td>$2,850.40</td>
+                                                <td>44.3%</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Insumos del Campo</td>
+                                                <td>$1,980.15</td>
+                                                <td>30.8%</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Productos Artesanales S.A.</td>
+                                                <td>$1,590.20</td>
+                                                <td>24.7%</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <time>Hoy, 10:26 a. m.</time>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Preguntas sugeridas -->
+                <div class="suggestions">
+                    <h2>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6z" />
+                            <path d="M18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z" />
+                        </svg>
+                        Preguntas sugeridas
+                    </h2>
+                    <div class="chips">
+                        <button class="chip" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                                <path d="M14 3v5h5M9 13h6M9 17h6" />
+                            </svg>
+                            Facturas con diferencias
+                        </button>
+                        <button class="chip" type="button">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path
+                                    d="M12 22s8-6.7 8-12.5A8 8 0 0 0 4 9.5C4 15.3 12 22 12 22zm0-9.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                            </svg>
+                            Gasto por sucursal
+                        </button>
+                        <button class="chip" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 21h18" />
+                                <path d="M5 17v-3M10 17v-6M15 17v-4" />
+                                <path d="m4 10 5-4 4 3 7-5" />
+                            </svg>
+                            Resumen del mes
+                        </button>
+                        <button class="chip" type="button">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="9" cy="8" r="3.5" />
+                                <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+                                <circle cx="17.5" cy="9" r="2.5" />
+                                <path d="M17 14.5a5 5 0 0 1 4.5 5" />
+                            </svg>
+                            Proveedor con mayor gasto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Entrada -->
+                <form class="composer" onsubmit="return false">
+                    <button class="composer__attach" type="button" aria-label="Adjuntar archivo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7" />
+                        </svg>
+                    </button>
+                    <input type="text" placeholder="Escribe tu consulta aquí..." aria-label="Escribe tu consulta">
+                    <button class="composer__send" type="submit" aria-label="Enviar">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M21.5 3 2.8 10.2a.8.8 0 0 0 0 1.5l6.3 2.4 2.4 6.3a.8.8 0 0 0 1.5 0zM9.5 13l8-7.5-6.2 9z" />
+                        </svg>
+                    </button>
+                </form>
+
+            </section>
+        </main>
+    </div>
+</body>
+
+</html>
