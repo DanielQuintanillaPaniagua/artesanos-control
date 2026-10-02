@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Artesanos AI{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/artesanos-ai.css') }}">
+{% endblock %}
+
+{% block body_content %}
+<div class="ai-page">
+
+    {# ---------- Header ---------- #}
+    <header class="ai-topbar">
+        <div class="ai-head-title">
+            <div class="ai-badge ai-badge--lg" aria-hidden="true">AI</div>
+            <div>
+                <h1>Artesanos AI</h1>
+                <p>Tu asistente inteligente para consultas, reportes y análisis de tu negocio.</p>
+            </div>
+        </div>
+
+        
+    </header>
+
+    {# ---------- Chat ---------- #}
+    <section class="chat">
+
+        <div class="messages" id="ai-messages">
+            {# Mensajes de bienvenida (ejemplos) #}
+            <div class="msg msg--ai">
+                <div class="ai-badge" aria-hidden="true">AI</div>
+                <div class="msg__col">
+                    <div class="bubble">
+                        <p>¡Hola! Soy <strong>Artesanos AI</strong>. Puedo ayudarte a consultar información sobre facturas, proveedores, sucursales y gastos.</p>
+                        <p class="mt-2">Probá alguna de las preguntas sugeridas o escribí la tuya.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ---------- Preguntas sugeridas ---------- #}
+        <div class="suggestions">
+            <h2>
+                <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;">
+                    <path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6z" />
+                    <path d="M18 13l.9 2.1L21 16l-2.1.9L18 19l-.9-2.1L15 16l2.1-.9z" />
+                </svg>
+                Preguntas sugeridas
+            </h2>
+            <div class="chips">
+                <button class="chip" type="button" onclick="enviarPregunta('¿Cuánto se gastó este mes?')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+                        <path d="M14 3v5h5M9 13h6M9 17h6" />
+                    </svg>
+                    Facturas con diferencias
+                </button>
+                <button class="chip" type="button" onclick="enviarPregunta('¿Cuál fue el gasto por sucursal este mes?')">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 22s8-6.7 8-12.5A8 8 0 0 0 4 9.5C4 15.3 12 22 12 22zm0-9.5a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" />
+                    </svg>
+                    Gasto por sucursal
+                </button>
+                <button class="chip" type="button" onclick="enviarPregunta('Dame un resumen del mes')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 21h18" />
+                        <path d="M5 17v-3M10 17v-6M15 17v-4" />
+                        <path d="m4 10 5-4 4 3 7-5" />
+                    </svg>
+                    Resumen del mes
+                </button>
+                <button class="chip" type="button" onclick="enviarPregunta('¿Cuál es el proveedor con mayor gasto?')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="8" r="3.5" />
+                        <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+                        <circle cx="17.5" cy="9" r="2.5" />
+                        <path d="M17 14.5a5 5 0 0 1 4.5 5" />
+                    </svg>
+                    Proveedor con mayor gasto
+                </button>
+            </div>
+        </div>
+
+        {# ---------- Input ---------- #}
+        <form class="composer" id="ai-form" onsubmit="return enviarFormulario(event)">
+            <button class="composer__attach" type="button" aria-label="Adjuntar archivo" disabled title="Próximamente">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7" />
+                </svg>
+            </button>
+            <input type="text" id="ai-input" placeholder="Escribe tu consulta aquí..." aria-label="Escribe tu consulta" autocomplete="off">
+            <button class="composer__send" type="submit" aria-label="Enviar">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21.5 3 2.8 10.2a.8.8 0 0 0 0 1.5l6.3 2.4 2.4 6.3a.8.8 0 0 0 1.5 0zM9.5 13l8-7.5-6.2 9z" />
+                </svg>
+            </button>
+        </form>
+
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================
+// Artesanos AI - Preparado para conectar con Gemini
+// ============================================
+
+const aiMessages = document.getElementById('ai-messages');
+const aiInput = document.getElementById('ai-input');
+const aiForm = document.getElementById('ai-form');
+
+// Historial de la conversación
+let historial = [];
+
+function agregarMensaje(tipo, contenido, timestamp = null) {
+    const div = document.createElement('div');
+    div.className = 'msg msg--' + tipo;
+
+    if (tipo === 'ai') {
+        div.innerHTML = `
+            <div class="ai-badge" aria-hidden="true">AI</div>
+            <div class="msg__col">
+                <div class="bubble">${contenido}</div>
+                ${timestamp ? `<time>${timestamp}</time>` : ''}
+            </div>
+        `;
+    } else {
+        div.innerHTML = `
+            <div class="msg__col">
+                <div class="bubble">${contenido}</div>
+                ${timestamp ? `<time>${timestamp}</time>` : ''}
+            </div>
+            <div class="avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 21a8 8 0 0 1 16 0z" />
+                </svg>
+            </div>
+        `;
+    }
+
+    aiMessages.appendChild(div);
+    aiMessages.scrollTop = aiMessages.scrollHeight;
+}
+
+function horaActual() {
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `Hoy, ${hh}:${mm}`;
+}
+
+function enviarPregunta(texto) {
+    aiInput.value = texto;
+    aiForm.dispatchEvent(new Event('submit', { cancelable: true }));
+}
+
+async function enviarFormulario(e) {
+    e.preventDefault();
+
+    const texto = aiInput.value.trim();
+    if (!texto) return false;
+
+    // Mostrar mensaje del usuario
+    agregarMensaje('user', texto, horaActual());
+    aiInput.value = '';
+
+    // Agregar al historial
+    historial.push({ rol: 'user', contenido: texto });
+
+    // Placeholder mientras la IA responde
+    const loadingId = 'loading-' + Date.now();
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'msg msg--ai';
+    loadingDiv.id = loadingId;
+    loadingDiv.innerHTML = `
+        <div class="ai-badge" aria-hidden="true">AI</div>
+        <div class="msg__col">
+            <div class="bubble"><em>Artesanos AI esta pensando...</em></div>
+        </div>
+    `;
+    aiMessages.appendChild(loadingDiv);
+    aiMessages.scrollTop = aiMessages.scrollHeight;
+
+    try {
+        const resp = await fetch('/api/ai/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ mensaje: texto, historial: historial })
+        });
+
+        const data = await resp.json();
+        document.getElementById(loadingId).remove();
+
+        if (data.ok) {
+            // Convertir saltos de linea a <br>
+            const respuestaHtml = data.respuesta
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+
+            agregarMensaje('ai', '<p>' + respuestaHtml + '</p>', horaActual());
+            historial.push({ rol: 'assistant', contenido: data.respuesta });
+        } else {
+            agregarMensaje('ai', '⚠️ ' + (data.error || 'Error al procesar la consulta'), horaActual());
+        }
+    } catch (err) {
+        console.error('Error IA:', err);
+        const loading = document.getElementById(loadingId);
+        if (loading) loading.remove();
+        agregarMensaje('ai', '⚠️ Error de conexion con Artesanos AI. Intenta de nuevo.', horaActual());
+    }
+
+    return false;
+}
+</script>
+{% endblock %}

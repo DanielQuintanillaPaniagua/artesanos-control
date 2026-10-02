@@ -5,3 +5,4 @@ Flask-Migrate
 python-dotenv
 PyMySQL
 cryptography
+google-generativeai>=0.8.0

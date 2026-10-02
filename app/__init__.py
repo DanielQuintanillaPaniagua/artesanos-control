@@ -1,4 +1,4 @@
-import os
+﻿import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -44,13 +44,19 @@ def create_app():
     from app.routes.editar_factura import editar_factura_bp
     from app.routes.admin import bp as admin_bp
     from app.routes.perfil import bp as perfil_bp
+    from app.routes.artesanos_ai import bp as artesanos_ai_bp
+    from app.routes.ai_api import bp as ai_api_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(facturas_bp)
+    
     app.register_blueprint(facturas_ui_bp)
     app.register_blueprint(editar_factura_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(perfil_bp)
+    app.register_blueprint(artesanos_ai_bp)
+    app.register_blueprint(ai_api_bp)
+
 
     return app

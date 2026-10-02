@@ -1,0 +1,614 @@
+﻿/* ==========================================================
+   Artesanos AI — Estilos integrados con base.html
+   ========================================================== */
+
+:root {
+    --ai-verde-900: #0f4630;
+    --ai-verde-800: #14573b;
+    --ai-verde-700: #1a6b48;
+    --ai-verde-bubble: #eaf6f0;
+    --ai-verde-line: #d4e9de;
+    --ai-bg: #ffffff;
+    --ai-border: #e3e8e5;
+    --ai-ink: #1d2a24;
+    --ai-muted: #6c7b83;
+    --ai-font: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+/* ==========================================================
+   LAYOUT PRINCIPAL — Ocupa toda la altura disponible
+   ========================================================== */
+.ai-page {
+    display: flex !important;
+    flex-direction: column !important;
+    height: calc(100vh - 48px) !important;
+    min-height: 500px !important;
+    max-height: calc(100vh - 48px) !important;
+    width: 100% !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: hidden !important;
+}
+
+/* ==========================================================
+   HEADER
+   ========================================================== */
+.ai-topbar {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 16px 24px !important;
+    border-bottom: 1px solid var(--ai-border) !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+    background: #fff !important;
+    flex-shrink: 0 !important;
+}
+
+.ai-head-title {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+}
+
+.ai-head-title h1 {
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    margin: 0 !important;
+    color: var(--ai-ink) !important;
+}
+
+.ai-head-title p {
+    margin: 2px 0 0 0 !important;
+    font-size: 13px !important;
+    color: var(--ai-muted) !important;
+}
+
+/* ==========================================================
+   CHAT — Contenedor principal
+   ========================================================== */
+.ai-page .chat {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+}
+
+/* ==========================================================
+   MENSAJES — Área scrolleable
+   ========================================================== */
+.ai-page .messages {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 24px 32px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    min-height: 0 !important;
+    background: #fff !important;
+}
+
+/* Scrollbar delgada */
+.ai-page .messages::-webkit-scrollbar {
+    width: 6px;
+}
+.ai-page .messages::-webkit-scrollbar-thumb {
+    background: #d4e9de;
+    border-radius: 3px;
+}
+.ai-page .messages::-webkit-scrollbar-thumb:hover {
+    background: var(--ai-verde-700);
+}
+
+/* ==========================================================
+   MENSAJES INDIVIDUALES
+   ========================================================== */
+.ai-page .msg {
+    display: flex !important;
+    gap: 12px !important;
+    align-items: flex-start !important;
+    flex-shrink: 0 !important;
+}
+
+.ai-page .msg--user {
+    justify-content: flex-end !important;
+}
+
+.ai-page .msg--ai {
+    justify-content: flex-start !important;
+}
+
+.ai-page .msg__col {
+    display: flex !important;
+    flex-direction: column !important;
+    max-width: 70% !important;
+    gap: 4px !important;
+}
+
+.ai-page .msg--user .msg__col {
+    align-items: flex-end !important;
+}
+
+.ai-page .msg--ai .msg__col {
+    align-items: flex-start !important;
+}
+
+.ai-page .bubble {
+    padding: 12px 16px !important;
+    border-radius: 16px !important;
+    font-size: 14.5px !important;
+    line-height: 1.5 !important;
+    word-wrap: break-word !important;
+    font-family: var(--ai-font) !important;
+}
+
+.ai-page .msg--user .bubble {
+    background: var(--ai-verde-bubble) !important;
+    color: var(--ai-verde-900) !important;
+    border-bottom-right-radius: 4px !important;
+}
+
+.ai-page .msg--ai .bubble {
+    background: #f4f6f5 !important;
+    color: var(--ai-ink) !important;
+    border-bottom-left-radius: 4px !important;
+}
+
+/* ==========================================================
+   AVATARES
+   ========================================================== */
+.ai-page .ai-badge {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: var(--ai-verde-900) !important;
+    color: #fff !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    flex-shrink: 0 !important;
+    font-family: var(--ai-font) !important;
+}
+
+.ai-page .ai-badge--lg {
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 15px !important;
+}
+
+.ai-page .avatar {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: var(--ai-verde-line) !important;
+    color: var(--ai-verde-900) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    padding: 8px !important;
+}
+
+.ai-page .avatar svg {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.ai-page .msg time {
+    font-size: 11px !important;
+    color: var(--ai-muted) !important;
+    padding: 0 4px !important;
+}
+
+/* ==========================================================
+   SUGERENCIAS — Fijas arriba del composer
+   ========================================================== */
+.ai-page .suggestions {
+    padding: 16px 32px 8px 32px !important;
+    border-top: 1px solid var(--ai-border) !important;
+    background: #fff !important;
+    flex-shrink: 0 !important;
+}
+
+.ai-page .suggestions h2 {
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    color: var(--ai-muted) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    margin: 0 0 10px 0 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.ai-page .chips {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+}
+
+.ai-page .chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px 14px !important;
+    background: #fff !important;
+    border: 1px solid var(--ai-border) !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+    color: var(--ai-ink) !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+    font-family: inherit !important;
+}
+
+.ai-page .chip:hover {
+    border-color: var(--ai-verde-700) !important;
+    background: var(--ai-verde-bubble) !important;
+    color: var(--ai-verde-900) !important;
+}
+
+.ai-page .chip svg {
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0 !important;
+}
+
+/* ==========================================================
+   COMPOSER — Fijo abajo
+   ========================================================== */
+.ai-page .composer {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 12px 24px 20px 24px !important;
+    background: #fff !important;
+    flex-shrink: 0 !important;
+}
+
+.ai-page .composer input {
+    flex: 1 !important;
+    border: 1px solid var(--ai-border) !important;
+    outline: none !important;
+    padding: 12px 20px !important;
+    font-size: 14.5px !important;
+    font-family: inherit !important;
+    color: var(--ai-ink) !important;
+    background: #fff !important;
+    border-radius: 999px !important;
+    transition: all 0.15s !important;
+}
+
+.ai-page .composer input:focus {
+    border-color: var(--ai-verde-700) !important;
+    box-shadow: 0 0 0 3px rgba(26, 107, 72, 0.1) !important;
+}
+
+.ai-page .composer input::placeholder {
+    color: var(--ai-muted) !important;
+}
+
+.ai-page .composer__attach,
+.ai-page .composer__send {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    cursor: pointer !important;
+    border: none !important;
+    transition: all 0.15s !important;
+}
+
+.ai-page .composer__attach {
+    background: transparent !important;
+    color: var(--ai-muted) !important;
+}
+
+.ai-page .composer__attach:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+}
+
+.ai-page .composer__send {
+    background: var(--ai-verde-700) !important;
+    color: #fff !important;
+}
+
+.ai-page .composer__send:hover {
+    background: var(--ai-verde-900) !important;
+}
+
+.ai-page .composer svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+/* ==========================================================
+   DROPDOWN DE SUCURSAL
+   ========================================================== */
+.ai-page .branch-select {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 8px 14px !important;
+    background: #fff !important;
+    border: 1px solid var(--ai-border) !important;
+    border-radius: 10px !important;
+    font-family: inherit !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+}
+
+.ai-page .branch-select:hover {
+    border-color: var(--ai-verde-700) !important;
+}
+
+.ai-page .branch-select__icon {
+    width: 22px !important;
+    height: 22px !important;
+    color: var(--ai-verde-700) !important;
+    flex-shrink: 0 !important;
+}
+
+.ai-page .branch-select__text {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    line-height: 1.2 !important;
+}
+
+.ai-page .branch-select__text small {
+    font-size: 10.5px !important;
+    color: var(--ai-muted) !important;
+}
+
+.ai-page .branch-select__text strong {
+    font-size: 13px !important;
+    color: var(--ai-ink) !important;
+}
+
+.ai-page .branch-select .chev {
+    width: 14px !important;
+    height: 14px !important;
+    color: var(--ai-muted) !important;
+}
+
+/* ==========================================================
+   RESPONSIVE
+   ========================================================== */
+@media (max-width: 768px) {
+    .ai-page {
+        height: auto !important;
+        max-height: none !important;
+    }
+    .ai-page .messages {
+        padding: 16px !important;
+        max-height: 60vh !important;
+    }
+    .ai-page .suggestions {
+        padding: 12px 16px 8px 16px !important;
+    }
+    .ai-page .composer {
+        padding: 8px 16px 16px 16px !important;
+    }
+    .ai-page .msg__col {
+        max-width: 85% !important;
+    }
+}
+
+/* ==========================================================
+   AGRANDAR TAMAÑOS — Todo más grande y legible
+   ========================================================== */
+
+/* Header más alto */
+.ai-page .ai-topbar {
+    padding: 22px 36px !important;
+}
+.ai-page .ai-head-title h1 {
+    font-size: 26px !important;
+}
+.ai-page .ai-head-title p {
+    font-size: 14.5px !important;
+}
+.ai-page .ai-badge--lg {
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 18px !important;
+}
+
+/* Mensajes más grandes */
+.ai-page .messages {
+    padding: 32px 48px !important;
+    gap: 20px !important;
+}
+.ai-page .msg__col {
+    max-width: 75% !important;
+}
+.ai-page .bubble {
+    padding: 16px 22px !important;
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+    border-radius: 20px !important;
+}
+.ai-page .ai-badge {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 14px !important;
+}
+.ai-page .avatar {
+    width: 42px !important;
+    height: 42px !important;
+    padding: 10px !important;
+}
+.ai-page .msg time {
+    font-size: 12.5px !important;
+}
+
+/* Sugerencias más grandes */
+.ai-page .suggestions {
+    padding: 20px 48px 12px 48px !important;
+}
+.ai-page .suggestions h2 {
+    font-size: 14px !important;
+    margin-bottom: 14px !important;
+}
+.ai-page .chip {
+    padding: 12px 20px !important;
+    font-size: 14.5px !important;
+    gap: 10px !important;
+}
+.ai-page .chip svg {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* Composer (input) más grande */
+.ai-page .composer {
+    padding: 12px 48px 24px 48px !important;
+    gap: 12px !important;
+}
+.ai-page .composer input {
+    padding: 16px 26px !important;
+    font-size: 16px !important;
+}
+.ai-page .composer__attach,
+.ai-page .composer__send {
+    width: 50px !important;
+    height: 50px !important;
+}
+.ai-page .composer svg {
+    width: 22px !important;
+    height: 22px !important;
+}
+
+/* Dropdown de sucursal más grande */
+.ai-page .branch-select {
+    padding: 12px 20px !important;
+    gap: 12px !important;
+}
+.ai-page .branch-select__icon {
+    width: 26px !important;
+    height: 26px !important;
+}
+.ai-page .branch-select__text small {
+    font-size: 12px !important;
+}
+.ai-page .branch-select__text strong {
+    font-size: 15px !important;
+}
+
+/* ==========================================================
+   AGRANDAR MÁS — Segunda pasada
+   ========================================================== */
+
+/* Header todavía más grande */
+.ai-page .ai-topbar {
+    padding: 28px 48px !important;
+}
+.ai-page .ai-head-title h1 {
+    font-size: 32px !important;
+}
+.ai-page .ai-head-title p {
+    font-size: 16px !important;
+}
+.ai-page .ai-badge--lg {
+    width: 68px !important;
+    height: 68px !important;
+    font-size: 22px !important;
+}
+
+/* Mensajes más grandes */
+.ai-page .messages {
+    padding: 40px 64px !important;
+    gap: 24px !important;
+}
+.ai-page .msg__col {
+    max-width: 80% !important;
+}
+.ai-page .bubble {
+    padding: 20px 28px !important;
+    font-size: 18px !important;
+    line-height: 1.65 !important;
+    border-radius: 24px !important;
+}
+.ai-page .ai-badge {
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 16px !important;
+}
+.ai-page .avatar {
+    width: 50px !important;
+    height: 50px !important;
+    padding: 12px !important;
+}
+.ai-page .msg time {
+    font-size: 14px !important;
+}
+
+/* Sugerencias más grandes */
+.ai-page .suggestions {
+    padding: 24px 64px 16px 64px !important;
+}
+.ai-page .suggestions h2 {
+    font-size: 16px !important;
+    margin-bottom: 16px !important;
+}
+.ai-page .chip {
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+    gap: 12px !important;
+}
+.ai-page .chip svg {
+    width: 18px !important;
+    height: 18px !important;
+}
+
+/* Composer (input) más grande */
+.ai-page .composer {
+    padding: 16px 64px 28px 64px !important;
+    gap: 14px !important;
+}
+.ai-page .composer input {
+    padding: 20px 32px !important;
+    font-size: 17px !important;
+}
+.ai-page .composer__attach,
+.ai-page .composer__send {
+    width: 58px !important;
+    height: 58px !important;
+}
+.ai-page .composer svg {
+    width: 26px !important;
+    height: 26px !important;
+}
+
+/* Dropdown de sucursal más grande */
+.ai-page .branch-select {
+    padding: 14px 24px !important;
+    gap: 14px !important;
+}
+.ai-page .branch-select__icon {
+    width: 30px !important;
+    height: 30px !important;
+}
+.ai-page .branch-select__text small {
+    font-size: 13px !important;
+}
+.ai-page .branch-select__text strong {
+    font-size: 17px !important;
+}
+.ai-page .branch-select .chev {
+    width: 16px !important;
+    height: 16px !important;
+}

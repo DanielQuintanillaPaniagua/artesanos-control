@@ -33,14 +33,14 @@
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
                 <a href="{{ url_for('facturas_ui.list_page') }}"
-                    class="sidebar-item {% if 'facturas' in request.endpoint and 'new' not in request.endpoint %}active{% endif %}">
+                    class="sidebar-item {% if request.endpoint == 'facturas_ui.list_page' %}active{% endif %}">
                     <i class="bi bi-file-earmark-text"></i> Facturas
                 </a>
 
                 {# ---- Solo empleados con sucursal activa: registrar factura ---- #}
                 {% if current_user.is_empleado() and current_user.sucursal and current_user.sucursal.estado == 'Activa' %}
                 <a href="{{ url_for('facturas_ui.create_page') }}"
-                    class="sidebar-item {% if 'new' in request.endpoint %}active{% endif %}">
+                    class="sidebar-item {% if request.endpoint == 'facturas_ui.create_page' %}active{% endif %}">
                     <i class="bi bi-plus-circle"></i> Registrar factura
                 </a>
                 {% endif %}
@@ -70,9 +70,12 @@
                 {% endif %}
 
                 {# ---- Comunes: Artesanos AI ---- #}
-                <a href="#" class="sidebar-item">
+                {% if current_user.is_owner() %}
+                <a href="{{ url_for('artesanos_ai.index') }}"
+                    class="sidebar-item {% if 'artesanos_ai' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-robot"></i> Artesanos AI
                 </a>
+                {% endif %}
             </nav>
             <div class="sidebar-user">
                 {% if current_user.is_owner() %}

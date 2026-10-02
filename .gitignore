@@ -14,3 +14,7 @@ instance/
 .idea/
 .DS_Store
 Thumbs.db
+*.bak
+*.backup
+*.old
+*.tmp

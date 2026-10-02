@@ -203,3 +203,45 @@
 .sidebar-user-link:hover strong {
     color: #fff;
 }
+
+/* ==========================================================
+   FIX: Forzar layout de 2 columnas (sidebar + contenido)
+   ========================================================== */
+.app-layout {
+    display: flex !important;
+    flex-direction: row !important;
+    min-height: 100vh !important;
+    width: 100% !important;
+}
+
+.artesanos-sidebar {
+    width: 220px !important;
+    flex-shrink: 0 !important;
+    position: sticky !important;
+    top: 0 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+}
+
+.artesanos-content {
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 24px 32px !important;
+    overflow-x: hidden !important;
+}
+
+.ai-page {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+@media (max-width: 768px) {
+    .app-layout {
+        flex-direction: column !important;
+    }
+    .artesanos-sidebar {
+        width: 100% !important;
+        height: auto !important;
+        position: static !important;
+    }
+}
