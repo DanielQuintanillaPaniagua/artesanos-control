@@ -9,6 +9,7 @@ from app import db
 from app.models.user import User
 from app.models.sucursal import Sucursal
 from app.models.factura import Factura
+from app.models.detalle_factura import DetalleFactura
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -661,3 +662,205 @@ def configuracion_limpiar_tokens():
         flash(f'Error al limpiar: {e}', 'danger')
 
     return redirect(url_for('admin.configuracion'))
+    # ==================================================
+# REPORTES EXCEL
+# ==================================================
+from app.services.excel_service import (
+    exportar_facturas_excel,
+    exportar_usuarios_excel,
+    exportar_sucursales_excel,
+    importar_facturas_excel,
+)
+from app.models.categoria import Categoria
+from app.models.proveedor import Proveedor
+
+
+@bp.route('/reportes/facturas.xlsx')
+@login_required
+def reporte_facturas_excel():
+    _solo_owner()
+
+    desde_str = (request.args.get('desde') or '').strip()
+    hasta_str = (request.args.get('hasta') or '').strip()
+    sucursal_id = request.args.get('sucursal', type=int)
+    estado = (request.args.get('estado') or '').strip()
+
+    query = Factura.query
+
+    if desde_str:
+        try:
+            desde = datetime.strptime(desde_str, '%Y-%m-%d').date()
+            query = query.filter(Factura.fecha >= desde)
+        except ValueError:
+            pass
+    if hasta_str:
+        try:
+            hasta = datetime.strptime(hasta_str, '%Y-%m-%d').date()
+            query = query.filter(Factura.fecha <= hasta)
+        except ValueError:
+            pass
+    if sucursal_id:
+        query = query.filter(Factura.sucursal_id == sucursal_id)
+    if estado:
+        query = query.filter(Factura.estado == estado)
+
+    facturas = query.order_by(Factura.fecha.asc(), Factura.id.asc()).all()
+    categorias = Categoria.query.filter_by(estado='Activa').order_by(Categoria.orden).all()
+
+    buffer = exportar_facturas_excel(facturas, categorias)
+    filename = f'facturas_{date.today().strftime("%Y%m%d")}.xlsx'
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
+@bp.route('/reportes/usuarios.xlsx')
+@login_required
+def reporte_usuarios_excel():
+    _solo_owner()
+
+    usuarios = User.query.order_by(User.nombre).all()
+    buffer = exportar_usuarios_excel(usuarios)
+    filename = f'usuarios_{date.today().strftime("%Y%m%d")}.xlsx'
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
+@bp.route('/reportes/sucursales.xlsx')
+@login_required
+def reporte_sucursales_excel():
+    _solo_owner()
+
+    hoy = date.today()
+    inicio_mes = hoy.replace(day=1)
+
+    sucursales_data = []
+    for s in Sucursal.query.order_by(Sucursal.nombre).all():
+        facturas_suc = Factura.query.filter(
+            Factura.fecha >= inicio_mes,
+            Factura.sucursal_id == s.id,
+        ).count()
+        usuarios_suc = User.query.filter_by(sucursal_id=s.id).count()
+        sucursales_data.append({
+            'obj': s,
+            'facturas_mes': facturas_suc,
+            'usuarios': usuarios_suc,
+        })
+
+    buffer = exportar_sucursales_excel(sucursales_data)
+    filename = f'sucursales_{date.today().strftime("%Y%m%d")}.xlsx'
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+
+# ==================================================
+# IMPORTAR FACTURAS DESDE EXCEL
+# ==================================================
+@bp.route('/importar', methods=['GET', 'POST'])
+@login_required
+def importar_excel():
+    _solo_owner()
+
+    sucursales = Sucursal.query.order_by(Sucursal.nombre).all()
+    resultado = None
+
+    if request.method == 'POST':
+        archivo = request.files.get('archivo')
+        sucursal_id = request.form.get('sucursal_id', type=int)
+
+        if not archivo:
+            flash('Debes seleccionar un archivo.', 'danger')
+            return render_template('admin/importar.html', sucursales=sucursales)
+
+        if not sucursal_id:
+            flash('Debes elegir una sucursal.', 'danger')
+            return render_template('admin/importar.html', sucursales=sucursales)
+
+        if not archivo.filename.lower().endswith(('.xlsx', '.xls')):
+            flash('El archivo debe ser Excel (.xlsx)', 'danger')
+            return render_template('admin/importar.html', sucursales=sucursales)
+
+        categorias = Categoria.query.filter_by(estado='Activa').all()
+        ok, data, resumen = importar_facturas_excel(
+            archivo.stream, categorias, sucursal_id, current_user.id
+        )
+
+        if not ok:
+            flash(f'Error: {data}', 'danger')
+            return render_template('admin/importar.html', sucursales=sucursales)
+
+        # Insertar facturas
+        importadas = 0
+        proveedores_creados = 0
+
+        for f_data in data:
+            # Buscar o crear proveedor
+            proveedor = None
+            if f_data['detalle']:
+                # Extraer nombre de proveedor (antes del primer guion)
+                nombre_prov = f_data['detalle'].split(' - ')[0].strip()[:150]
+                if nombre_prov:
+                    proveedor = Proveedor.query.filter(
+                        Proveedor.nombre.ilike(nombre_prov)
+                    ).first()
+                    if not proveedor:
+                        proveedor = Proveedor(
+                            nombre=nombre_prov,
+                            estado='Activo',
+                        )
+                        db.session.add(proveedor)
+                        db.session.flush()
+                        proveedores_creados += 1
+
+            # Crear factura
+            factura = Factura(
+                numero_factura=f'IMP-{datetime.now().strftime("%Y%m%d%H%M%S")}-{importadas+1}',
+                fecha=f_data['fecha'],
+                tipo_documento=f_data['tipo_documento'],
+                detalle=f_data['detalle'],
+                total_factura=f_data['total'],
+                proveedor_id=proveedor.id if proveedor else None,
+                sucursal_id=sucursal_id,
+                usuario_id=current_user.id,
+                estado='Validada',
+            )
+            db.session.add(factura)
+            db.session.flush()
+
+            for d in f_data['detalles']:
+                detalle = DetalleFactura(
+                    factura_id=factura.id,
+                    categoria_id=d['categoria_id'],
+                    monto=d['monto'],
+                )
+                db.session.add(detalle)
+
+            importadas += 1
+
+        db.session.commit()
+
+        resultado = {
+            'importadas': importadas,
+            'proveedores_creados': proveedores_creados,
+            'total_filas': resumen.get('total_filas', 0),
+            'sin_fecha': resumen.get('sin_fecha', 0),
+            'sin_monto': resumen.get('sin_monto', 0),
+        }
+
+        flash(f'{importadas} facturas importadas correctamente.', 'success')
+
+    return render_template('admin/importar.html', sucursales=sucursales, resultado=resultado)

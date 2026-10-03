@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}{{ 'Nuevo usuario' if modo == 'nuevo' else 'Editar usuario' }}{% endblock %}
 
@@ -45,7 +45,7 @@
                             <label class="form-label">Email</label>
                             <input type="email" name="email" class="form-control"
                                    value="{{ form_data.get('email') or (usuario.email if usuario and usuario.email else '') }}">
-                            <div class="form-text">Opcional. Útil para recuperar contraseña (próximamente).</div>
+                            <div class="form-text">Opcional. Se usará para recuperar tu contraseña si la olvidas.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Rol *</label>
