@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Iniciar sesion - ARTESANOS CONTROL{% endblock %}
 {% block body_class %}bg-artesanos{% endblock %}
@@ -51,7 +51,7 @@
         </form>
 
         <p class="forgot-password text-center">
-            <a href="#">Olvidaste tu contrasena?</a>
+            <a href="{{ url_for('recuperar.solicitar') }}">Olvidaste tu contrasena?</a>
         </p>
 
     </div>

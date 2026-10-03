@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Recuperar contrasena{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="bi bi-key"></i>
+            </div>
+            <h1>Recuperar contrasena</h1>
+            <p>Ingresa tu correo electronico y te enviaremos un link para restablecer tu contrasena.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label for="email">
+                    <i class="bi bi-envelope"></i> Correo electronico
+                </label>
+                <input type="email" id="email" name="email" class="form-control"
+                       placeholder="tu@correo.com" required autofocus
+                       autocomplete="email">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">
+                <i class="bi bi-send"></i> Enviar link de recuperacion
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <a href="{{ url_for('auth.login') }}">
+                <i class="bi bi-arrow-left"></i> Volver al inicio de sesion
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

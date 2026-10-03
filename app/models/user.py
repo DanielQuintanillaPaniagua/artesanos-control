@@ -45,3 +45,55 @@ class User(UserMixin, db.Model):
 
     def __repr__(self):
         return f'<User {self.usuario}>'
+
+# ============================================================
+# Password Reset Token (recuperacion de contrasena)
+# ============================================================
+from datetime import datetime, timedelta, timezone
+import secrets
+
+
+class PasswordResetToken(db.Model):
+    """Token temporal para recuperar contrasena via email."""
+    __tablename__ = 'password_reset_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False, index=True)
+    token = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    expira = db.Column(db.DateTime, nullable=False)
+    usado = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = db.relationship('User', backref='reset_tokens')
+
+    @staticmethod
+    def generar(user_id):
+        """Genera un nuevo token valido por 1 hora."""
+        # Invalidar tokens viejos del mismo usuario
+        PasswordResetToken.query.filter_by(user_id=user_id, usado=False).update({'usado': True})
+
+        token = secrets.token_urlsafe(32)
+        expira = datetime.now(timezone.utc) + timedelta(hours=1)
+
+        nuevo = PasswordResetToken(
+            user_id=user_id,
+            token=token,
+            expira=expira,
+        )
+        db.session.add(nuevo)
+        db.session.commit()
+        return nuevo
+
+    def es_valido(self):
+        """Verifica si el token todavia sirve."""
+        if self.usado:
+            return False
+        # Comparar con timezone UTC
+        ahora = datetime.now(timezone.utc)
+        expira = self.expira
+        if expira.tzinfo is None:
+            expira = expira.replace(tzinfo=timezone.utc)
+        return ahora < expira
+
+    def __repr__(self):
+        return f'<PasswordResetToken user_id={self.user_id} usado={self.usado}>'

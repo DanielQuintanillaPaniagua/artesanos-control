@@ -46,6 +46,8 @@ def create_app():
     from app.routes.perfil import bp as perfil_bp
     from app.routes.artesanos_ai import bp as artesanos_ai_bp
     from app.routes.ai_api import bp as ai_api_bp
+    from app.routes.recuperar import bp as recuperar_bp
+    
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp)
@@ -57,6 +59,6 @@ def create_app():
     app.register_blueprint(perfil_bp)
     app.register_blueprint(artesanos_ai_bp)
     app.register_blueprint(ai_api_bp)
-
+    app.register_blueprint(recuperar_bp)
 
     return app
