@@ -1,3 +1,4 @@
+from pathlib import Path
 from flask import Blueprint, render_template, abort, request, redirect, url_for, flash, Response
 import csv
 import io
@@ -548,3 +549,115 @@ def reporte_sucursales_csv():
 
     fecha_str = date.today().strftime('%Y%m%d')
     return _csv_response(rows, headers, f'sucursales_{fecha_str}.csv')
+    # ==================================================
+# CONFIGURACION DEL SISTEMA
+# ==================================================
+from flask import send_file, jsonify
+from app.services.system_service import (
+    get_system_info, get_server_status, get_recent_logs,
+    get_smtp_status, create_backup, limpiar_tokens_expirados,
+    get_backup_dir,
+)
+
+
+@bp.route('/configuracion')
+@login_required
+def configuracion():
+    _solo_owner()
+
+    return render_template(
+        'admin/configuracion.html',
+        system_info=get_system_info(),
+        server_status=get_server_status(),
+        smtp_status=get_smtp_status(),
+        logs=get_recent_logs(lines=50),
+    )
+
+
+@bp.route('/configuracion/backup', methods=['POST'])
+@login_required
+def configuracion_backup():
+    _solo_owner()
+
+    ok, resultado = create_backup()
+    if ok:
+        flash(f'Backup creado: {Path(resultado).name}', 'success')
+    else:
+        flash(f'Error al crear backup: {resultado}', 'danger')
+
+    return redirect(url_for('admin.configuracion'))
+
+
+@bp.route('/configuracion/backup/descargar')
+@login_required
+def configuracion_backup_descargar():
+    _solo_owner()
+
+    backup_dir = get_backup_dir()
+    archivos = sorted(backup_dir.glob('*.sql'), key=lambda p: p.stat().st_mtime, reverse=True)
+
+    if not archivos:
+        flash('No hay backups disponibles. Crea uno primero.', 'warning')
+        return redirect(url_for('admin.configuracion'))
+
+    ultimo = archivos[0]
+    return send_file(str(ultimo), as_attachment=True, download_name=ultimo.name)
+
+
+@bp.route('/configuracion/test-email', methods=['POST'])
+@login_required
+def configuracion_test_email():
+    _solo_owner()
+
+    from app.services.email_service import enviar_email
+
+    if not current_user.email:
+        return jsonify({'ok': False, 'error': 'Tu usuario no tiene email configurado'}), 400
+
+    html = """
+    <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+        <h2 style="color:#0f4630;">Prueba de SMTP</h2>
+        <p>Si estas viendo este correo, el sistema de envio de Artesanos Control funciona correctamente.</p>
+        <p style="color:#6c7b83;font-size:12px;">Enviado desde el panel de administracion.</p>
+    </div>
+    """
+
+    ok, error = enviar_email(
+        current_user.email,
+        'Prueba SMTP - Artesanos Control',
+        html,
+        'Prueba SMTP de Artesanos Control. Si ves este correo, todo funciona.'
+    )
+
+    if ok:
+        return jsonify({'ok': True, 'mensaje': f'Correo enviado a {current_user.email}'})
+    return jsonify({'ok': False, 'error': error}), 500
+
+
+@bp.route('/configuracion/logs/descargar')
+@login_required
+def configuracion_logs_descargar():
+    _solo_owner()
+
+    logs = get_recent_logs(lines=500)
+    contenido = '\n'.join(logs)
+
+    from io import BytesIO
+    buffer = BytesIO(contenido.encode('utf-8'))
+
+    filename = f'logs_{date.today().strftime("%Y%m%d")}.txt'
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='text/plain')
+
+
+@bp.route('/configuracion/limpiar-tokens', methods=['POST'])
+@login_required
+def configuracion_limpiar_tokens():
+    _solo_owner()
+
+    try:
+        total = limpiar_tokens_expirados()
+        flash(f'{total} tokens expirados eliminados.', 'success')
+    except Exception as e:
+        flash(f'Error al limpiar: {e}', 'danger')
+
+    return redirect(url_for('admin.configuracion'))
