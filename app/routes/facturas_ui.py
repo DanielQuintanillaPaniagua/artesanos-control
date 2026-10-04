@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, render_template, request, abort, redirect, url_for, flash
+from flask import Blueprint, render_template, request, abort, redirect, url_for, flash
 from flask_login import login_required, current_user
 from sqlalchemy import or_
 from datetime import datetime, date
@@ -62,7 +62,8 @@ def list_page():
         .paginate(page=page, per_page=per_page, error_out=False)
     )
 
-    sucursales = Sucursal.query.filter_by(estado='Activa').order_by(Sucursal.nombre).all()
+    from sqlalchemy import func as _sql_func
+    sucursales = Sucursal.query.filter(_sql_func.lower(Sucursal.estado) == 'activa').order_by(Sucursal.nombre).all()
 
     return render_template(
         'facturas/list.html',

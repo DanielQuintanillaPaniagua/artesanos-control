@@ -22,6 +22,7 @@ function guardarCola(cola) {
         console.error('Error guardando cola:', e);
         mostrarBanner('Error: no se pudo guardar localmente', 'offline');
     }
+
 }
 
 function agregarALaCola(factura) {
