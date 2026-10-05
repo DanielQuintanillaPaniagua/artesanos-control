@@ -47,7 +47,13 @@ def create_app():
     from app.routes.artesanos_ai import bp as artesanos_ai_bp
     from app.routes.ai_api import bp as ai_api_bp
     from app.routes.recuperar import bp as recuperar_bp
-    
+    from app.routes.dashboard_api import bp as dashboard_api_bp
+    from app.routes.usuarios_api import bp as usuarios_api_bp
+    from app.routes.sucursales_api import bp as sucursales_api_bp
+    from app.routes.proveedores_api import bp as proveedores_api_bp
+    from app.routes.categorias_api import bp as categorias_api_bp
+    from app.routes.reportes_api import bp as reportes_api_bp
+
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp)
@@ -60,5 +66,12 @@ def create_app():
     app.register_blueprint(artesanos_ai_bp)
     app.register_blueprint(ai_api_bp)
     app.register_blueprint(recuperar_bp)
+    app.register_blueprint(dashboard_api_bp)
+    app.register_blueprint(usuarios_api_bp)
+    app.register_blueprint(sucursales_api_bp)
+    app.register_blueprint(proveedores_api_bp)
+    app.register_blueprint(categorias_api_bp)
+    app.register_blueprint(reportes_api_bp)
+
 
     return app

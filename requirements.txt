@@ -1,10 +1,23 @@
-﻿Flask
-Flask-SQLAlchemy
-Flask-Login
-Flask-Migrate
-python-dotenv
-PyMySQL
-cryptography
+﻿# ============================================
+# ARTESANOS CONTROL - Dependencias
+# ============================================
+
+# Core
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.0
+Flask-Login>=0.6.3
+Flask-Migrate>=4.0.5
+python-dotenv>=1.0.0
+
+# Base de datos
+PyMySQL>=1.1.0
+cryptography>=41.0.0
+
+# IA (Google Gemini)
 google-generativeai>=0.8.0
+
+# Monitoreo del sistema
 psutil>=5.9.0
+
+# Exportacion Excel
 openpyxl>=3.1.0

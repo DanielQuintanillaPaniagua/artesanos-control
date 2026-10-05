@@ -1,0 +1,259 @@
+﻿{% extends "base.html" %}
+
+{% block title %}API Docs{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<style>
+.api-header {
+    background: linear-gradient(135deg, #0f4630 0%, #1a6b48 100%);
+    color: #fff;
+    padding: 40px;
+    border-radius: 16px;
+    margin-bottom: 24px;
+}
+.api-header h1 {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0 0 8px;
+}
+.api-header p {
+    opacity: 0.9;
+    margin: 0;
+    font-size: 15px;
+}
+.api-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 12px;
+}
+
+.api-section {
+    background: #fff;
+    border: 1px solid #e5e9e6;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+}
+.api-section h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #16243a;
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.api-section h2 i {
+    color: #1f6b45;
+}
+
+.api-endpoint {
+    border-left: 3px solid #1f6b45;
+    background: #fafcfb;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    border-radius: 0 8px 8px 0;
+    transition: all 0.15s;
+}
+.api-endpoint:hover {
+    background: #f0f7f3;
+    transform: translateX(2px);
+}
+
+.api-method {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    font-family: monospace;
+    margin-right: 10px;
+    letter-spacing: 0.5px;
+}
+.api-method.get { background: #dbeafe; color: #1e40af; }
+.api-method.post { background: #dcfce7; color: #166534; }
+.api-method.put { background: #fef3c7; color: #92400e; }
+.api-method.delete { background: #fee2e2; color: #991b1b; }
+
+.api-path {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: #16243a;
+}
+.api-desc {
+    color: #6b7688;
+    font-size: 13px;
+    margin-top: 6px;
+    margin-left: 0;
+}
+.api-perm {
+    display: inline-block;
+    font-size: 11px;
+    color: #92400e;
+    background: #fef3c7;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 6px;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block body_content %}
+<div class="container-fluid py-4">
+
+    <div class="api-header">
+        <h1><i class="bi bi-braces me-2"></i>API REST</h1>
+        <p>Documentación completa de los endpoints de Artesanos Control</p>
+        <span class="api-badge">
+            <i class="bi bi-check-circle me-1"></i>{{ total_endpoints }} endpoints activos
+        </span>
+    </div>
+
+    {# Dashboard #}
+    <div class="api-section">
+        <h2><i class="bi bi-speedometer2"></i>Dashboard</h2>
+
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/dashboard/stats</span>
+            <div class="api-desc">Métricas generales del periodo</div>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/dashboard/facturas-por-sucursal</span>
+            <div class="api-desc">Desglose por sucursal</div>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/dashboard/facturas-por-categoria</span>
+            <div class="api-desc">Top categorías por monto</div>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/dashboard/facturas-por-dia</span>
+            <div class="api-desc">Serie temporal de los últimos N días</div>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/dashboard/top-proveedores</span>
+            <div class="api-desc">Proveedores con mayor monto</div>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/dashboard/alerts</span>
+            <div class="api-desc">Facturas observadas (alertas)</div>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/dashboard/resumen</span>
+            <div class="api-desc">Todo en uno: stats + sucursales + categorías</div>
+        </div>
+    </div>
+
+    {# Usuarios #}
+    <div class="api-section">
+        <h2><i class="bi bi-people"></i>Usuarios</h2>
+
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/usuarios/</span>
+            <div class="api-desc">Listar usuarios (filtros: rol, estado, sucursal)</div>
+            <span class="api-perm">Solo owner</span>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method get">GET</span>
+            <span class="api-path">/api/usuarios/&lt;id&gt;</span>
+            <div class="api-desc">Ver un usuario</div>
+            <span class="api-perm">Solo owner</span>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method post">POST</span>
+            <span class="api-path">/api/usuarios/</span>
+            <div class="api-desc">Crear usuario</div>
+            <span class="api-perm">Solo owner</span>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method put">PUT</span>
+            <span class="api-path">/api/usuarios/&lt;id&gt;</span>
+            <div class="api-desc">Actualizar usuario</div>
+            <span class="api-perm">Solo owner</span>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method delete">DELETE</span>
+            <span class="api-path">/api/usuarios/&lt;id&gt;</span>
+            <div class="api-desc">Desactivar usuario (soft delete)</div>
+            <span class="api-perm">Solo owner</span>
+        </div>
+        <div class="api-endpoint">
+            <span class="api-method post">POST</span>
+            <span class="api-path">/api/usuarios/&lt;id&gt;/toggle-estado</span>
+            <div class="api-desc">Alternar activo/inactivo</div>
+            <span class="api-perm">Solo owner</span>
+        </div>
+    </div>
+
+    {# Sucursales #}
+    <div class="api-section">
+        <h2><i class="bi bi-shop"></i>Sucursales</h2>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/sucursales/</span><div class="api-desc">Listar sucursales</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/sucursales/&lt;id&gt;</span><div class="api-desc">Ver sucursal con stats</div></div>
+        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/sucursales/</span><div class="api-desc">Crear sucursal</div><span class="api-perm">Solo owner</span></div>
+        <div class="api-endpoint"><span class="api-method put">PUT</span><span class="api-path">/api/sucursales/&lt;id&gt;</span><div class="api-desc">Actualizar sucursal</div><span class="api-perm">Solo owner</span></div>
+        <div class="api-endpoint"><span class="api-method delete">DELETE</span><span class="api-path">/api/sucursales/&lt;id&gt;</span><div class="api-desc">Desactivar sucursal</div><span class="api-perm">Solo owner</span></div>
+        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/sucursales/&lt;id&gt;/toggle-estado</span><div class="api-desc">Alternar estado</div></div>
+    </div>
+
+    {# Proveedores #}
+    <div class="api-section">
+        <h2><i class="bi bi-truck"></i>Proveedores</h2>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/proveedores/</span><div class="api-desc">Listar proveedores (filtros: estado, buscar)</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/proveedores/&lt;id&gt;</span><div class="api-desc">Ver proveedor con stats</div></div>
+        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/proveedores/</span><div class="api-desc">Crear proveedor</div></div>
+        <div class="api-endpoint"><span class="api-method put">PUT</span><span class="api-path">/api/proveedores/&lt;id&gt;</span><div class="api-desc">Actualizar proveedor</div></div>
+        <div class="api-endpoint"><span class="api-method delete">DELETE</span><span class="api-path">/api/proveedores/&lt;id&gt;</span><div class="api-desc">Desactivar proveedor</div></div>
+        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/proveedores/&lt;id&gt;/toggle-estado</span><div class="api-desc">Alternar estado</div></div>
+    </div>
+
+    {# Categorias #}
+    <div class="api-section">
+        <h2><i class="bi bi-tags"></i>Categorías</h2>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/categorias/</span><div class="api-desc">Listar categorías (agrupadas)</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/categorias/grupos</span><div class="api-desc">Listar grupos únicos</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/categorias/&lt;id&gt;</span><div class="api-desc">Ver categoría con stats</div></div>
+        <div class="api-endpoint"><span class="api-method post">POST</span><span class="api-path">/api/categorias/</span><div class="api-desc">Crear categoría</div><span class="api-perm">Solo owner</span></div>
+        <div class="api-endpoint"><span class="api-method put">PUT</span><span class="api-path">/api/categorias/&lt;id&gt;</span><div class="api-desc">Actualizar categoría</div><span class="api-perm">Solo owner</span></div>
+        <div class="api-endpoint"><span class="api-method delete">DELETE</span><span class="api-path">/api/categorias/&lt;id&gt;</span><div class="api-desc">Desactivar categoría</div><span class="api-perm">Solo owner</span></div>
+    </div>
+
+    {# Reportes #}
+    <div class="api-section">
+        <h2><i class="bi bi-file-earmark-bar-graph"></i>Reportes</h2>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/reportes/facturas</span><div class="api-desc">Facturas en JSON</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/reportes/usuarios</span><div class="api-desc">Usuarios en JSON</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/reportes/sucursales</span><div class="api-desc">Sucursales con stats</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/reportes/resumen</span><div class="api-desc">Resumen general</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/reportes/facturas.xlsx</span><div class="api-desc">Descarga Excel de facturas</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/reportes/usuarios.xlsx</span><div class="api-desc">Descarga Excel de usuarios</div></div>
+        <div class="api-endpoint"><span class="api-method get">GET</span><span class="api-path">/api/reportes/sucursales.xlsx</span><div class="api-desc">Descarga Excel de sucursales</div></div>
+    </div>
+
+    {# IA #}
+    <div class="api-section">
+        <h2><i class="bi bi-robot"></i>Artesanos AI</h2>
+        <div class="api-endpoint">
+            <span class="api-method post">POST</span>
+            <span class="api-path">/api/ai/chat</span>
+            <div class="api-desc">Chat con Google Gemini</div>
+            <span class="api-perm">Solo owner</span>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

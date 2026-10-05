@@ -864,3 +864,15 @@ def importar_excel():
         flash(f'{importadas} facturas importadas correctamente.', 'success')
 
     return render_template('admin/importar.html', sucursales=sucursales, resultado=resultado)
+
+
+# ==================================================
+# API DOCS
+# ==================================================
+@bp.route('/api-docs')
+@login_required
+def api_docs():
+    _solo_owner()
+    from flask import current_app
+    total = len([r for r in current_app.url_map.iter_rules() if '/api/' in r.rule])
+    return render_template('api_docs.html', total_endpoints=total)
