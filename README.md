@@ -1,7 +1,6 @@
 ﻿# ARTESANOS CONTROL
 
-Sistema web de control y validacion de facturas para **ARTESANOS PIZZERIA**, una empresa salvadorena con 3 sucursales (Usulutan, San Salvador, San Miguel).
-
+Sistema web de control y validacion de facturas para **ARTESANOS PIZZERIA**, una empresa salvadorena 
 ## Descripcion
 
 Aplicacion Flask que permite a los empleados de cada sucursal registrar facturas de compra, con un desglose obligatorio por categorias (Comida, Bebida, Limpieza, etc.). El sistema valida que la suma de categorias coincida con el total de la factura antes de guardarla, evitando errores de cuadre.
