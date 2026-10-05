@@ -295,6 +295,18 @@ mysqldump -u artesanos -p --no-tablespaces artesanos_control > backup_$(date +%Y
 
 ---
 
+## 👥 Equipo
+
+| Integrante | Rol | GitHub |
+|------------|-----|--------|
+| **Daniel Quintanilla Paniagua** | Desarrollador principal | [@DanielQuintanillaPaniagua](https://github.com/DanielQuintanillaPaniagua) |
+| David Roberto Sánchez Rodríguez | Colaborador | [@David2689](https://github.com/David2689) |
+| David Alberto Beltrán Rivas | Colaborador | [@davidrivaszz](https://github.com/davidrivaszz) |
+| Kevin Manrique Campos Granados | Colaborador | [@kevin67883](https://github.com/kevin67883) |
+| José Luis Gracia Mejía | Colaborador | [@jgjose](https://github.com/jgjose) |
+
+---
+
 ## 📄 Licencia
 
 Proyecto privado de **ARTESANOS PIZZERÍA**. Todos los derechos reservados.
@@ -303,7 +315,7 @@ Proyecto privado de **ARTESANOS PIZZERÍA**. Todos los derechos reservados.
 
 <div align="center">
 
-Hecho con ☕ por [Daniel Quintanilla](https://github.com/DanielQuintanillaPaniagua) · Usulután, El Salvador 🇸🇻
+Hecho con 🐍 Usulután, El Salvador 🇸🇻
 
 *Última actualización: octubre de 2026*
 
