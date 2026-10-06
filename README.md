@@ -1,82 +1,137 @@
-﻿# ARTESANOS CONTROL
+﻿<div align="center">
 
-Sistema web de control y validacion de facturas para **ARTESANOS PIZZERIA**, una empresa salvadorena 
-## Descripcion
+# 🍕 ARTESANOS CONTROL
 
-Aplicacion Flask que permite a los empleados de cada sucursal registrar facturas de compra, con un desglose obligatorio por categorias (Comida, Bebida, Limpieza, etc.). El sistema valida que la suma de categorias coincida con el total de la factura antes de guardarla, evitando errores de cuadre.
+**Sistema web de control y validación de facturas para ARTESANOS PIZZERÍA**
 
-Incluye un panel de administracion completo para el owner, con gestion de usuarios, sucursales, reportes exportables y un asistente de IA basado en Google Gemini.
+![Python](https://img.shields.io/badge/Python-3.9+-3776AB?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-3.0-000000?logo=flask&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
+![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?logo=bootstrap&logoColor=white)
+![Gemini](https://img.shields.io/badge/IA-Google%20Gemini-4285F4?logo=googlegemini&logoColor=white)
+![AWS](https://img.shields.io/badge/Deploy-AWS%20Lightsail-FF9900?logo=amazonaws&logoColor=white)
+![License](https://img.shields.io/badge/Licencia-Privada-red)
 
-## Caracteristicas
+</div>
 
-### Autenticacion y seguridad
-- Login con roles (Owner / Empleado)
-- Hashing de contrasenas con scrypt (Werkzeug)
-- Recuperacion de contrasena por email con token temporal
-- Bloqueo de sucursales inactivas (capa 8 en 6 niveles)
+---
+
+## 📖 Descripción
+
+**ARTESANOS CONTROL** es una aplicación Flask hecha para una empresa salvadoreña real, con sucursales en **San Salvador, Usulután y San Miguel**. Reemplaza el control de compras en Excel por un sistema centralizado.
+
+Cada empleado registra las facturas de compra de su sucursal con un **desglose obligatorio por categorías** (Comida, Bebida, Limpieza, etc.). Antes de guardar, el sistema valida que **la suma de las categorías sea exactamente igual al total de la factura**; si no cuadra, bloquea el guardado.
+
+El **owner** no registra facturas: las revisa, las corrige cuando hay errores (con historial de cambios) y consulta todo desde un panel global, incluyendo un asistente de IA basado en Google Gemini.
+
+> 💡 La validación la hace el backend en Python. La IA solo consulta y resume datos ya validados; **nunca participa en la validación**.
+
+---
+
+## ✨ Características
+
+### 🔐 Autenticación y seguridad
+
+- Login con roles: **Owner** y **Empleado** (sesión ligada a una sucursal)
+- Contraseñas hasheadas con **scrypt** (Werkzeug)
+- Recuperación de contraseña por email con token temporal
+- Bloqueo de acceso a sucursales inactivas
 - Permisos granulares por rol
 
-### 
-- Registro con validacion automatica de cuadre
-- 21 categorias de gasto (segun Excel de la empresa)
-- Edicion de facturas por el owner con historial de cambios
+### 🧾 Gestión de facturas
+
+- Registro con validación automática de cuadre
+- **21 categorías de gasto** basadas en el Excel real de la empresa
+- Edición por el owner con **historial de correcciones**
 - Filtros por sucursal, rango de fechas y estado
-- Bloqueo de superar el total de la factura (capa 8)
-- Modo offline con sincronizacion automatica
+- Bloqueo si el desglose supera el total de la factura
+- Modo offline con sincronización automática
 
-### Panel de administracion
-- CRUD de usuarios (crear, editar, activar/desactivar)
-- CRUD de sucursales (crear, editar, activar/desactivar)
-- Resetear contrasena de cualquier usuario
-- Dashboard con metricas por sucursal
-- Reportes exportables (CSV y Excel)
-- Importacion de facturas desde Excel
-- Configuracion del sistema (backup, monitoreo, logs)
-- Backup manual de la base de datos con rotacion
+### 🛠️ Panel de administración
 
-### Artesanos AI
-- Chat con inteligencia artificial (Google Gemini)
+- CRUD de usuarios y sucursales (crear, editar, activar/desactivar)
+- Reseteo de contraseña de cualquier usuario
+- Dashboard con métricas por sucursal
+- Reportes exportables en **CSV y Excel**
+- Importación de facturas desde Excel
+- Configuración del sistema: backups, monitoreo y logs
+- Backup manual de la base de datos con rotación
+
+### 🤖 Artesanos AI
+
+- Chat en lenguaje natural con **Google Gemini**
 - Contexto real de facturas, proveedores y sucursales
-- Preguntas sugeridas para consultas rapidas
-- Solo accesible para administradores
+- Preguntas sugeridas para consultas rápidas
+- Acceso exclusivo para administradores
 
-## Tecnologias
+---
 
-| Capa | Tecnologia |
+## 🧰 Tecnologías
+
+| Capa | Tecnología |
 |------|------------|
-| Backend | Python 3.9+ / Flask 3.0 |
-| ORM | SQLAlchemy + Flask-SQLAlchemy |
-| Base de datos | MySQL 8 (produccion) / MariaDB via XAMPP (local) |
-| Autenticacion | Flask-Login + Werkzeug Security (scrypt) |
+| Backend | Python 3.9+ · Flask 3.0 |
+| ORM | SQLAlchemy · Flask-SQLAlchemy |
+| Base de datos | MySQL 8 (producción) · MariaDB vía XAMPP (local) |
+| Autenticación | Flask-Login · Werkzeug Security (scrypt) |
 | Migraciones | Flask-Migrate |
-| Frontend | HTML5 + CSS3 + JavaScript + Bootstrap 5.3 |
-| IA | Google Gemini 3.8 Flash |
-| Emails | SMTP via Gmail |
+| Frontend | HTML5 · CSS3 · JavaScript · Bootstrap 5.3 |
+| IA | Google Gemini API |
+| Emails | SMTP vía Gmail |
 | Excel | openpyxl |
 | Monitoreo | psutil |
-| Deploy | AWS Lightsail + Nginx + Gunicorn + systemd |
-| HTTPS | Let's Encrypt + Certbot |
+| Deploy | AWS Lightsail · Nginx · Gunicorn · systemd |
+| HTTPS | Let's Encrypt · Certbot |
 | Dominio | DuckDNS |
 
-## Instalacion local
+---
+
+## 🚀 Instalación local
 
 ### Requisitos previos
+
 - Python 3.9 o superior
-- MySQL o MariaDB (XAMPP recomendado para Windows)
+- MySQL o MariaDB (XAMPP recomendado en Windows)
 - Git
 
 ### Pasos
 
-1. **Clonar el repositorio**
-   ```bash
-   git clone https://github.com/danielQuintanillaPanamagua/artesanos-control.git
-   cd artesanos-control 
+**1. Clonar el repositorio**
+
+```bash
+git clone https://github.com/DanielQuintanillaPaniagua/artesanos-control.git
+cd artesanos-control
+```
+
+**2. Crear y activar el entorno virtual**
+
+```powershell
+# Windows (PowerShell)
 python -m venv venv
-Crear y activar el entorno virtual
 .\venv\Scripts\Activate.ps1
-Instalar dependencias
+```
+
+```bash
+# Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
+```
+
+**3. Instalar dependencias**
+
+```bash
 pip install -r requirements.txt
-onfigurar el archivo .env (copiar de .env.example)
+```
+
+**4. Configurar variables de entorno**
+
+Copia la plantilla y edítala con tus valores (ver la [tabla de variables](#-variables-de-entorno)):
+
+```bash
+cp .env.example .env
+```
+
+```env
 FLASK_SECRET_KEY=tu_clave_secreta
 SQLALCHEMY_DATABASE_URI=mysql+pymysql://root:@127.0.0.1/artesanos_control
 FLASK_ENV=development
@@ -87,19 +142,41 @@ SMTP_USER=tu_correo@gmail.com
 SMTP_PASSWORD=tu_app_password_de_gmail
 SMTP_FROM=Artesanos Control <tu_correo@gmail.com>
 GEMINI_API_KEY=tu_api_key_de_gemini
-Crear la base de datos (en MySQL/XAMPP)
+```
+
+**5. Crear la base de datos** (en MySQL/XAMPP)
+
+```sql
 CREATE DATABASE artesanos_control CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-Crear las tablas y datos iniciales
+```
+
+**6. Crear las tablas y los datos iniciales**
+
+```bash
 python crear_admin.py
-Arrancar el servidor
+```
+
+**7. Arrancar el servidor**
+
+```bash
 python run.py
-Abrir en el navegador
-http://127.0.0.1:5000
-Credenciales por defecto
-Rol    Usuario    Contrasena
-Admin    admin    (ver crear_admin.py)
-IMPORTANTE: cambiar la contrasena del admin despues del primer login.
-Estructura del proyecto
+```
+
+**8. Abrir en el navegador:** <http://127.0.0.1:5000>
+
+### 🔑 Credenciales por defecto
+
+| Rol | Usuario | Contraseña |
+|-----|---------|------------|
+| Admin | `admin` | Ver `crear_admin.py` |
+
+> ⚠️ **IMPORTANTE:** cambia la contraseña del admin después del primer login.
+
+---
+
+## 🗂️ Estructura del proyecto
+
+```
 artesanos-control/
 ├── app/
 │   ├── __init__.py              # Application Factory
@@ -122,72 +199,124 @@ artesanos-control/
 │   │   ├── recuperar.py
 │   │   ├── artesanos_ai.py
 │   │   └── ai_api.py
-│   ├── services/                # Logica de negocio
+│   ├── services/                # Lógica de negocio
 │   │   ├── validacion.py
 │   │   ├── email_service.py
 │   │   ├── system_service.py
 │   │   ├── excel_service.py
 │   │   └── artesanos_ai.py
 │   ├── templates/               # Templates Jinja2
-│   ├── static/                  # CSS, JS, imagenes
-│   └── instance/                # SQLite (solo dev)
+│   ├── static/                  # CSS, JS, imágenes
+│   └── instance/                # SQLite (solo desarrollo)
 ├── migrations/                  # Flask-Migrate
 ├── backups/                     # Backups de BD (gitignored)
-├── .env                         # Variables de entorno (NO en git)
-├── .env.example                 # Plantilla
+├── .env                         # Variables de entorno (NO va en git)
+├── .env.example                 # Plantilla de variables
 ├── .gitignore
 ├── requirements.txt
 ├── crear_admin.py
 └── run.py
-Deploy a produccion
-Arquitectura
-Cliente → HTTPS → Nginx (443) → Gunicorn (socket) → Flask → MySQL
-Servidor
-Proveedor: AWS Lightsail (1 GB RAM, 2 vCPU)
+```
 
-OS: Ubuntu 24.04 LTS
+---
 
-Region: US East (Ohio)
+## ☁️ Deploy a producción
 
-Servicios
-Gunicorn: /etc/systemd/system/artesanos.service (1 worker + 4 threads)
+### Arquitectura
 
-Nginx: /etc/nginx/sites-available/artesanos (proxy inverso)
+```mermaid
+flowchart LR
+    A[Cliente] -->|HTTPS 443| B[Nginx]
+    B -->|socket| C[Gunicorn]
+    C --> D[Flask]
+    D --> E[(MySQL)]
+```
 
-SSL: Let's Encrypt con renovacion automatica via Certbot
+### Servidor
 
-Actualizar produccion
+| Componente | Detalle |
+|------------|---------|
+| Proveedor | AWS Lightsail (1 GB RAM, 2 vCPU) |
+| Sistema operativo | Ubuntu 24.04 LTS |
+| Región | US East (Ohio) |
+| Gunicorn | `/etc/systemd/system/artesanos.service` (1 worker + 4 threads) |
+| Nginx | `/etc/nginx/sites-available/artesanos` (proxy inverso) |
+| SSL | Let's Encrypt con renovación automática vía Certbot |
+
+### Actualizar producción
+
+```bash
 ssh -i /ruta/a/tu/llave.pem ubuntu@IP_DEL_SERVIDOR
 cd /home/ubuntu/artesanos-control
 git pull origin main
 source venv/bin/activate
 pip install -r requirements.txt
 sudo systemctl restart artesanos.service
-Backup de la base de datos
-mysqldump -u artesanos -pArtesanos2026 --no-tablespaces artesanos_control > backup_$(date +%Y%m%d).sql
-O desde el panel: /admin/configuracion → "Crear backup ahora"
+```
 
-Variables de entorno
-Variable    Descripcion    Ejemplo
-FLASK_SECRET_KEY    Clave secreta de Flask    generar_con_secrets
-SQLALCHEMY_DATABASE_URI    URI de conexion a MySQL    mysql+pymysql://user:pass@host/db
-FLASK_ENV    Entorno de Flask    development / production
-FLASK_DEBUG    Modo debug    True / False
-SMTP_HOST    Servidor SMTP    smtp.gmail.com
-SMTP_PORT    Puerto SMTP    587
-SMTP_USER    Usuario SMTP    correo@gmail.com
-SMTP_PASSWORD    Contrasena de aplicacion    16 caracteres
-GEMINI_API_KEY    API key de Google Gemini    AIza...
-Contribucion
-Las ramas siguen el patron:
+### Backup de la base de datos
 
-main → rama estable
+**Opción 1: desde el panel.** Ve a `/admin/configuracion` y pulsa **"Crear backup ahora"**.
 
-daniel-pre-production → rama de desarrollo pre-produccion
+**Opción 2: desde la terminal.** MySQL te pedirá la contraseña de forma interactiva, así no queda guardada en el historial del shell ni en el repo:
 
-feature/xxx → nuevas funcionalidades
+```bash
+mysqldump -u artesanos -p --no-tablespaces artesanos_control > backup_$(date +%Y%m%d).sql
+```
 
-Licencia
-Proyecto privado de ARTESANOS PIZZERIA. Todos los derechos reservados.
+---
 
-Ultima actualizacion: Octubre 2026
+## ⚙️ Variables de entorno
+
+| Variable | Descripción | Ejemplo |
+|----------|-------------|---------|
+| `FLASK_SECRET_KEY` | Clave secreta de Flask | Generar con `secrets` |
+| `SQLALCHEMY_DATABASE_URI` | URI de conexión a MySQL | `mysql+pymysql://user:pass@host/db` |
+| `FLASK_ENV` | Entorno de Flask | `development` / `production` |
+| `FLASK_DEBUG` | Modo debug | `True` / `False` |
+| `SMTP_HOST` | Servidor SMTP | `smtp.gmail.com` |
+| `SMTP_PORT` | Puerto SMTP | `587` |
+| `SMTP_USER` | Usuario SMTP | `correo@gmail.com` |
+| `SMTP_PASSWORD` | Contraseña de aplicación de Gmail | 16 caracteres |
+| `SMTP_FROM` | Remitente de los correos | `Artesanos Control <correo@gmail.com>` |
+| `GEMINI_API_KEY` | API key de Google Gemini | `AIza...` |
+
+> 🔒 Nunca subas `.env` al repositorio. En producción usa `FLASK_ENV=production` y `FLASK_DEBUG=False`.
+
+---
+
+## 🌿 Flujo de ramas
+
+| Rama | Propósito |
+|------|-----------|
+| `main` | Rama estable (producción) |
+| `daniel-pre-production` | Desarrollo y pruebas previas a producción |
+| `feature/xxx` | Nuevas funcionalidades |
+
+---
+
+## 👥 Equipo
+
+| Integrante | Rol | GitHub |
+|------------|-----|--------|
+| **Daniel Quintanilla Paniagua** | Desarrollador principal | [@DanielQuintanillaPaniagua](https://github.com/DanielQuintanillaPaniagua) |
+| David Roberto Sánchez Rodríguez | Colaborador | [@David2689](https://github.com/David2689) |
+| David Alberto Beltrán Rivas | Colaborador | [@davidrivaszz](https://github.com/davidrivaszz) |
+| Kevin Manrique Campos Granados | Colaborador | [@kevin67883](https://github.com/kevin67883) |
+| José Luis Gracia Mejía | Colaborador | [@jgjose](https://github.com/jgjose) |
+
+---
+
+## 📄 Licencia
+
+Proyecto privado de **ARTESANOS PIZZERÍA**. Todos los derechos reservados.
+
+---
+
+<div align="center">
+
+Hecho con 🐍 Usulután, El Salvador 🇸🇻
+
+*Última actualización: octubre de 2026*
+
+</div>
