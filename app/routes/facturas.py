@@ -68,17 +68,36 @@ def create_factura():
     total_factura = float(data.get('total_factura') or 0)
     detalles = data.get('detalles', [])
 
+    # 1. Validar campos requeridos
     if not numero:
         return jsonify({'success': False, 'error': 'Numero de factura obligatorio'}), 400
+
     if not detalles:
         return jsonify({'success': False, 'error': 'Debes ingresar al menos una categoria'}), 400
+
+    # 2. Validar que los montos sean positivos
+    for d in detalles:
+        monto = float(d.get('monto', 0))
+        if monto < 0:
+            return jsonify({
+                'success': False,
+                'error': 'El monto de una categoria no puede ser negativo'
+            }), 400
+
+    # 3. Validar el total
+    if total_factura <= 0:
+        return jsonify({
+            'success': False,
+            'error': 'El total de la factura debe ser mayor a cero'
+        }), 400
+
+    # 4. Validar la suma
     suma_detalles = sum(float(d.get('monto', 0)) for d in detalles)
     if suma_detalles > total_factura + 0.01:
         return jsonify({
             'success': False,
             'error': f'La suma de categorias (${suma_detalles:.2f}) supera el total de la factura (${total_factura:.2f})'
         }), 400
-
     es_valida, mensaje, _ = validar_factura(detalles, total_factura)
     estado = 'Validada' if es_valida else 'Observada'
 

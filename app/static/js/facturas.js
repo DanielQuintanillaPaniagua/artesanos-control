@@ -1,4 +1,4 @@
-﻿// ============================================
+// ============================================
 // ARTESANOS CONTROL - Formulario de Facturas
 // ============================================
 
@@ -39,6 +39,27 @@ function ocultarAlerta() {
 // ============================================
 // CARGAR CATEGORIAS
 // ============================================
+
+// ============================================
+// BLOQUEO DE NEGATIVOS
+// ============================================
+function bloquearNegativos(e) {
+    const teclasBloqueadas = ['-', 'e', 'E', '+'];
+    if (teclasBloqueadas.includes(e.key)) {
+        e.preventDefault();
+        return false;
+    }
+    return true;
+}
+
+function bloquearPegadoNegativo(e) {
+    const portapapeles = (e.clipboardData || window.clipboardData).getData('text');
+    if (portapapeles.includes('-')) {
+        e.preventDefault();
+        return false;
+    }
+    return true;
+}
 async function cargarCategorias() {
     const contPrincipales = document.getElementById('categorias-principales');
     const contOtras = document.getElementById('categorias-grid');
@@ -222,8 +243,17 @@ async function guardarNuevoProveedor() {
 function recalcular() {
     const inputs = document.querySelectorAll('.monto-input');
     let total = 0;
+    let hayNegativos = false;
+
     inputs.forEach(inp => {
-        total += parseFloat(inp.value) || 0;
+        const valor = parseFloat(inp.value) || 0;
+        if (valor < 0) {
+            inp.classList.add('invalido');
+            hayNegativos = true;
+        } else {
+            inp.classList.remove('invalido');
+            total += valor;
+        }
     });
 
     const totalDeclarado = parseFloat(document.getElementById('total_factura').value) || 0;
@@ -237,6 +267,23 @@ function recalcular() {
     const estado = document.getElementById('estado-validacion');
     const btnGuardar = document.getElementById('btn-guardar');
 
+    // ============================================
+    // PRIORIDAD 1: BLOQUEO POR NEGATIVOS
+    // ============================================
+    if (hayNegativos) {
+        estado.className = 'estado-validacion observada';
+        estado.innerHTML = '<i class="bi bi-x-circle-fill"></i> LOS MONTOS NO PUEDEN SER NEGATIVOS';
+        if (btnGuardar) {
+            btnGuardar.disabled = true;
+            btnGuardar.classList.add('disabled');
+        }
+        mostrarAlerta('Los montos no pueden ser negativos');
+        return;
+    }
+
+    // ============================================
+    // PRIORIDAD 2: BLOQUEO POR EXCESO
+    // ============================================
     if (excedido) {
         estado.className = 'estado-validacion observada';
         estado.innerHTML = '<i class="bi bi-x-circle-fill"></i> NO PUEDES SUPERAR EL TOTAL DE LA FACTURA';
@@ -245,23 +292,29 @@ function recalcular() {
             btnGuardar.classList.add('disabled');
         }
         mostrarAlerta(`La suma ($${total.toFixed(2)}) supera el total ($${totalDeclarado.toFixed(2)})`);
-    } else {
-        if (btnGuardar) {
-            btnGuardar.disabled = false;
-            btnGuardar.classList.remove('disabled');
-        }
-        if (total === 0 && totalDeclarado === 0) {
-            estado.className = 'estado-validacion';
-            estado.innerHTML = '<i class="bi bi-hourglass-split"></i> Ingresa los montos';
-        } else if (diferencia <= 0.01) {
-            estado.className = 'estado-validacion validada';
-            estado.innerHTML = '<i class="bi bi-check-circle-fill"></i> FACTURA VALIDADA';
-        } else {
-            estado.className = 'estado-validacion observada';
-            estado.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> DESCUADRE: $' + diferencia.toFixed(2);
-        }
+        return;
     }
 
+    // ============================================
+    // ESTADO NORMAL
+    // ============================================
+    if (btnGuardar) {
+        btnGuardar.disabled = false;
+        btnGuardar.classList.remove('disabled');
+    }
+
+    if (total === 0 && totalDeclarado === 0) {
+        estado.className = 'estado-validacion';
+        estado.innerHTML = '<i class="bi bi-hourglass-split"></i> Ingresa los montos';
+    } else if (diferencia <= 0.01) {
+        estado.className = 'estado-validacion validada';
+        estado.innerHTML = '<i class="bi bi-check-circle-fill"></i> FACTURA VALIDADA';
+    } else {
+        estado.className = 'estado-validacion observada';
+        estado.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> DESCUADRE: $' + diferencia.toFixed(2);
+    }
+
+    // Marcar categorias excedidas
     inputs.forEach(inp => {
         const item = inp.closest('.categoria-item');
         if (item) {
@@ -275,10 +328,6 @@ function recalcular() {
     });
 }
 
-
-// ============================================
-// LIMPIAR FORMULARIO
-// ============================================
 function limpiarFormularioFactura() {
     document.getElementById('numero_factura').value = '';
     document.getElementById('detalle').value = '';
