@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_login import login_required, current_user
 
 from app import db
@@ -66,7 +66,8 @@ def listar():
             'sucursales': [_serializar(s, incluir_stats=con_stats) for s in sucursales],
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -131,7 +132,8 @@ def crear():
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -186,7 +188,8 @@ def actualizar(sucursal_id):
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -221,7 +224,8 @@ def eliminar(sucursal_id):
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -249,4 +253,5 @@ def toggle_estado(sucursal_id):
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500

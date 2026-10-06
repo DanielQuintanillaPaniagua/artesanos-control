@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_login import login_required, current_user
 
 from app import db
@@ -70,7 +70,8 @@ def listar():
             'por_grupo': agrupadas,
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -90,7 +91,8 @@ def grupos():
             'grupos': resultado,
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -155,7 +157,8 @@ def crear():
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -210,7 +213,8 @@ def actualizar(categoria_id):
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -244,7 +248,8 @@ def eliminar(categoria_id):
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -272,4 +277,5 @@ def toggle_estado(categoria_id):
         })
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500

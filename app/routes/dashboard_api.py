@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_login import login_required, current_user
 from datetime import date, timedelta
 
@@ -96,7 +96,8 @@ def stats():
             }
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -143,7 +144,8 @@ def facturas_por_sucursal():
             'total_sucursales': len(resultado),
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -194,7 +196,8 @@ def facturas_por_categoria():
             'total_categorias': len(resultado),
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -246,7 +249,8 @@ def facturas_por_dia():
             'serie': resultado,
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -292,7 +296,8 @@ def top_proveedores():
             'proveedores': resultado,
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -335,7 +340,8 @@ def alerts():
             'total': len(alertas),
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -400,4 +406,5 @@ def resumen():
             'top_categorias': por_categoria,
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500

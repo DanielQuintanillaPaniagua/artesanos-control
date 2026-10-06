@@ -178,3 +178,27 @@
 .ef-historial li:last-child {
     border-bottom: 0
 }
+/* FIX CRITICO: Forzar color del boton Guardar */
+.ef-btn-guardar,
+.ef-btn-guardar:disabled {
+    background-color: #12402d !important;
+    border-color: #12402d !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    min-height: 42px !important;
+    cursor: pointer !important;
+}
+
+.ef-btn-guardar:disabled {
+    background-color: #6b7688 !important;
+    border-color: #6b7688 !important;
+    cursor: not-allowed !important;
+}
+
+.ef-btn-guardar:hover:not(:disabled) {
+    background-color: #1f6b4a !important;
+    border-color: #1f6b4a !important;
+}

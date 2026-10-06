@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, jsonify, request, send_file
+from flask import Blueprint, jsonify, request, send_file, current_app
 from flask_login import login_required, current_user
 from datetime import date, datetime, timedelta
 from io import BytesIO
@@ -112,7 +112,8 @@ def facturas():
             'facturas': data,
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -159,7 +160,8 @@ def usuarios():
             'usuarios': data,
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -209,7 +211,8 @@ def sucursales():
             'sucursales': data,
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -252,7 +255,8 @@ def resumen():
             },
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -293,7 +297,8 @@ def facturas_xlsx():
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -319,7 +324,8 @@ def usuarios_xlsx():
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -360,4 +366,5 @@ def sucursales_xlsx():
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en endpoint")
+        return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500

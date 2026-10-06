@@ -1,18 +1,23 @@
 ﻿# run.py
-from app import create_app, db
 import os
+from app import create_app, db
 
 app = create_app()
 
-# Parche temporal de emergencia
+# Verificar que SECRET_KEY este configurada
 if not app.config.get('SECRET_KEY'):
-    app.config['SECRET_KEY'] = 'clave-temporal-de-emergencia-12345'
-    print("⚠️  Usando SECRET_KEY temporal (arregla el .env)")
+    raise RuntimeError(
+        "FLASK_SECRET_KEY no configurada en el .env. "
+        "Copia .env.example a .env y configura la variable."
+    )
 
 with app.app_context():
     db.create_all()
-    print("Base de datos inicializada en instance/artesanos.db")
+    print("Base de datos inicializada")
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Debug solo si FLASK_DEBUG=True
+    debug_mode = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    port = int(os.getenv('PORT', 5000))
+    app.run(debug=debug_mode, port=port)

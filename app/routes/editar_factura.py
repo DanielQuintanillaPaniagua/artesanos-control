@@ -74,6 +74,9 @@ def guardar_correccion(factura_id):
     except (KeyError, ValueError, InvalidOperation, TypeError):
         return jsonify(error="Datos invalidos"), 400
 
+    if any(m < 0 for _, m in detalle):
+        return jsonify(error="Los montos por categoria no pueden ser negativos"), 400
+
     motivo = (datos.get("motivo") or "").strip()
     if len(motivo) < 5:
         return jsonify(error="Escribe el motivo de la correccion (minimo 5 caracteres)"), 400
