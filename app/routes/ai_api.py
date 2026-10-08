@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 
 from app.services.artesanos_ai import preguntar_a_artesanos_ai
@@ -11,7 +11,7 @@ bp = Blueprint('ai_api', __name__, url_prefix='/api/ai')
 @login_required
 def chat():
     """Endpoint para consultar a Artesanos AI."""
-    if not current_user.is_owner():
+    if not (current_user.is_owner() or current_user.is_supervisor()):
         return jsonify({'ok': False, 'error': 'Solo el administrador puede usar Artesanos AI'}), 403
 
     data = request.get_json(silent=True) or {}

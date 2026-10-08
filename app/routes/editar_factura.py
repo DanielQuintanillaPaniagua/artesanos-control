@@ -1,4 +1,4 @@
-﻿import json
+import json
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 

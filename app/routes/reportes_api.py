@@ -10,6 +10,7 @@ from app.models.categoria import Categoria
 from app.models.sucursal import Sucursal
 from app.models.user import User
 from app.models.proveedor import Proveedor
+from app.utils.permisos import owner_o_supervisor_api
 from app.services.excel_service import (
     exportar_facturas_excel,
     exportar_usuarios_excel,
