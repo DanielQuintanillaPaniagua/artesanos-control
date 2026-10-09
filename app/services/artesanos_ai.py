@@ -51,13 +51,27 @@ def _recopilar_contexto(sucursal_id=None):
     observadas_mes = sum(1 for f in facturas_mes if f.estado == 'Observada')
 
     # --- Sucursales y usuarios ---
-    total_sucursales = Sucursal.query.filter_by(estado='Activa').count()
-    total_usuarios = User.query.filter_by(estado='Activo').count()
-    total_proveedores = Proveedor.query.filter_by(estado='Activo').count()
+    if sucursal_id:
+        # Supervisor: solo su sucursal
+        total_sucursales = 1
+        total_usuarios = User.query.filter_by(estado='Activo', sucursal_id=sucursal_id).count()
+        total_proveedores = Proveedor.query.filter_by(estado='Activo').count()
+    else:
+        # Owner: ve todo
+        total_sucursales = Sucursal.query.filter_by(estado='Activa').count()
+        total_usuarios = User.query.filter_by(estado='Activo').count()
+        total_proveedores = Proveedor.query.filter_by(estado='Activo').count()
 
     # --- Desglose por sucursal (ultimo mes) ---
     sucursales_info = []
-    for s in Sucursal.query.order_by(Sucursal.nombre).all():
+    if sucursal_id:
+        # Supervisor: solo su sucursal
+        sucursales_query = Sucursal.query.filter_by(id=sucursal_id).all()
+    else:
+        # Owner: todas
+        sucursales_query = Sucursal.query.order_by(Sucursal.nombre).all()
+
+    for s in sucursales_query:
         f_suc = [f for f in facturas_mes if f.sucursal_id == s.id]
         if f_suc:
             monto = sum((f.total_factura or 0) for f in f_suc)
