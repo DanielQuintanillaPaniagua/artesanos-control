@@ -2,7 +2,7 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from flask import Blueprint, render_template, request, jsonify, current_app
+from flask import Blueprint, render_template, request, jsonify, current_app, url_for
 from flask_login import login_required, current_user
 
 from app import db
@@ -11,7 +11,8 @@ from app.models.detalle_factura import DetalleFactura
 from app.models.proveedor import Proveedor
 from app.models.categoria import Categoria
 from app.models.historial_correccion import HistorialCorreccion
-
+from app.models.user import User
+from app.services.email_service import enviar_email_supervisor_edito
 editar_factura_bp = Blueprint("editar_factura", __name__)
 
 
@@ -108,9 +109,9 @@ def guardar_correccion(factura_id):
 
         factura.total_factura = float(total)
         factura.fecha = fecha
-        factura.proveedor_id = proveedor_id
+        proveedor_id = proveedor_id
 
-# Regla: supervisor edita -> queda Observada + notifica al owner
+        # Regla: supervisor edita -> queda Observada + notifica al owner
         if current_user.is_supervisor():
             factura.estado = "Observada"
             factura.observacion = f"Editada por supervisor {current_user.nombre}. Requiere revisión del owner."
@@ -143,6 +144,28 @@ def guardar_correccion(factura_id):
             despues=json.dumps(despues),
         ))
         db.session.commit()
+
+        # Notificar al owner si fue un supervisor
+        if current_user.is_supervisor():
+            try:
+                owner = User.query.filter_by(rol='owner', estado='Activo').first()
+                if owner and owner.email:
+                    # Generar resumen de cambios en HTML
+                    cambios_html = f"<p><strong>Antes:</strong> {antes}</p><p><strong>Despues:</strong> {despues}</p>"
+
+                    link = url_for('facturas_ui.detail_page', factura_id=factura.id, _external=True)
+
+                    enviar_email_supervisor_edito(
+                        destinatario=owner.email,
+                        factura=factura,
+                        supervisor=current_user,
+                        motivo=motivo,
+                        cambios=cambios_html,
+                        link=link,
+                    )
+            except Exception:
+                current_app.logger.exception("Error al enviar email al owner")
+                # No rompemos la app si falla el email
     except Exception:
         db.session.rollback()
         current_app.logger.exception(
