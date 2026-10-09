@@ -13,8 +13,8 @@ bp = Blueprint('facturas', __name__, url_prefix='/api/facturas')
 
 def _sucursal_activa(user):
     """Verifica que el usuario tenga sucursal activa."""
-    if not user.is_empleado():
-        return False, 'Solo los empleados pueden registrar facturas'
+    if not (user.is_empleado() or user.is_supervisor()):
+        return False, 'Solo los empleados y supervisores pueden registrar facturas'
     if not user.sucursal_id:
         return False, 'Tu cuenta no tiene una sucursal asignada'
     if not user.sucursal or user.sucursal.estado != 'Activa':
@@ -91,16 +91,18 @@ def create_factura():
             'error': 'El total de la factura debe ser mayor a cero'
         }), 400
 
-    # 4. Validar la suma
+        # 4. Validar la suma
     suma_detalles = sum(float(d.get('monto', 0)) for d in detalles)
     if suma_detalles > total_factura + 0.01:
         return jsonify({
             'success': False,
             'error': f'La suma de categorias (${suma_detalles:.2f}) supera el total de la factura (${total_factura:.2f})'
         }), 400
-        es_valida, mensaje, _ = validar_factura(detalles, total_factura)
 
-    # REGLA: empleados NO pueden guardar facturas descuadradas
+    # 5. Validar cuadre (ANTES de usarla)
+    es_valida, mensaje, _ = validar_factura(detalles, total_factura)
+
+    # 6. REGLA: empleados NO pueden guardar facturas descuadradas
     if not es_valida and current_user.is_empleado():
         return jsonify({
             'success': False,

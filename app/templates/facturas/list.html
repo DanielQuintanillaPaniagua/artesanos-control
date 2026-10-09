@@ -29,7 +29,7 @@
                 </button>
                 {% if q %}
                 <a href="{{ url_for('facturas_ui.list_page', sucursal=sucursal_id, desde=desde, hasta=hasta) }}"
-                   class="btn btn-outline-secondary ms-2" title="Limpiar búsqueda">
+                    class="btn btn-outline-secondary ms-2" title="Limpiar búsqueda">
                     <i class="bi bi-x-lg"></i>
                 </a>
                 {% endif %}
@@ -53,7 +53,7 @@
                 <select name="sucursal" class="form-select form-select-sm">
                     <option value="">Todas las sucursales</option>
                     {% for s in sucursales %}
-                    <option value="{{ s.id }}" {% if sucursal_id == s.id %}selected{% endif %}>{{ s.nombre }}</option>
+                    <option value="{{ s.id }}" {% if sucursal_id==s.id %}selected{% endif %}>{{ s.nombre }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -62,12 +62,14 @@
             {# Rango de fechas #}
             <div class="filtro-grupo">
                 <label class="filtro-label"><i class="bi bi-calendar-event me-1"></i>Desde</label>
-                <input type="date" name="desde" id="filtro-desde" value="{{ desde }}" class="form-control form-control-sm">
+                <input type="date" name="desde" id="filtro-desde" value="{{ desde }}"
+                    class="form-control form-control-sm">
             </div>
 
             <div class="filtro-grupo">
                 <label class="filtro-label"><i class="bi bi-calendar-event me-1"></i>Hasta</label>
-                <input type="date" name="hasta" id="filtro-hasta" value="{{ hasta }}" class="form-control form-control-sm">
+                <input type="date" name="hasta" id="filtro-hasta" value="{{ hasta }}"
+                    class="form-control form-control-sm">
             </div>
 
             <div class="filtro-grupo filtro-acciones">
@@ -84,10 +86,13 @@
         <div class="presets-bar mt-2">
             <span class="text-muted small me-2">Rápido:</span>
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="presetHoy()">Hoy</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="presetEstaSemana()">Esta semana</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="presetEstaSemana()">Esta
+                semana</button>
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="presetEsteMes()">Este mes</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="presetMesAnterior()">Mes anterior</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="presetUltimos30()">Últimos 30 días</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="presetMesAnterior()">Mes
+                anterior</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="presetUltimos30()">Últimos 30
+                días</button>
         </div>
     </form>
 
@@ -133,7 +138,7 @@
                                     class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-eye me-1"></i>Ver detalle
                                 </a>
-                                {% if current_user.is_owner() %}
+                                {% if current_user.is_owner() or current_user.is_supervisor() %}
                                 <a href="{{ url_for('editar_factura.pantalla_editar', factura_id=f.id) }}"
                                     class="btn btn-sm btn-outline-warning">
                                     <i class="bi bi-pencil me-1"></i>Editar
@@ -173,7 +178,8 @@
             {% if num %}
             <li class="page-item {% if num == facturas.page %}active{% endif %}">
                 <a class="page-link"
-                   href="{{ url_for('facturas_ui.list_page', page=num, q=q, sucursal=sucursal_id, desde=desde, hasta=hasta) }}">{{ num }}</a>
+                    href="{{ url_for('facturas_ui.list_page', page=num, q=q, sucursal=sucursal_id, desde=desde, hasta=hasta) }}">{{
+                    num }}</a>
             </li>
             {% else %}
             <li class="page-item disabled"><span class="page-link">…</span></li>

@@ -41,6 +41,10 @@ def pantalla_editar(factura_id):
         return "Acceso denegado", 403
 
     factura = Factura.query.get_or_404(factura_id)
+
+    # Supervisor: solo puede editar facturas de su sucursal
+    if current_user.is_supervisor() and factura.sucursal_id != current_user.sucursal_id:
+        return "Acceso denegado", 403
     detalles = DetalleFactura.query.filter_by(factura_id=factura.id).all()
     historial = (
         HistorialCorreccion.query
@@ -67,6 +71,9 @@ def guardar_correccion(factura_id):
         return jsonify(error="Solo el administrador puede editar facturas"), 403
 
     factura = Factura.query.get_or_404(factura_id)
+        # Supervisor: solo puede editar facturas de su sucursal
+    if current_user.is_supervisor() and factura.sucursal_id != current_user.sucursal_id:
+        return jsonify(error="Solo puedes editar facturas de tu sucursal"), 403
     datos = request.get_json(silent=True) or {}
 
     try:

@@ -1,4 +1,4 @@
-// ============================================
+﻿// ============================================
 // ARTESANOS CONTROL - Formulario de Facturas
 // ============================================
 
@@ -304,14 +304,41 @@ function recalcular() {
     }
 
     if (total === 0 && totalDeclarado === 0) {
+        if (btnGuardar) {
+            btnGuardar.disabled = true;
+            btnGuardar.classList.add('disabled');
+        }
         estado.className = 'estado-validacion';
         estado.innerHTML = '<i class="bi bi-hourglass-split"></i> Ingresa los montos';
     } else if (diferencia <= 0.01) {
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.classList.remove('disabled');
+        }
         estado.className = 'estado-validacion validada';
         estado.innerHTML = '<i class="bi bi-check-circle-fill"></i> FACTURA VALIDADA';
     } else {
-        estado.className = 'estado-validacion observada';
-        estado.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> DESCUADRE: $' + diferencia.toFixed(2);
+        // Hay descuadre
+        const userRole = document.body.dataset.userRole || 'empleado';
+        const esEmpleado = userRole === 'empleado';
+
+        if (esEmpleado) {
+            // Empleado: bloquear
+            if (btnGuardar) {
+                btnGuardar.disabled = true;
+                btnGuardar.classList.add('disabled');
+            }
+            estado.className = 'estado-validacion observada';
+            estado.innerHTML = '<i class="bi bi-x-circle-fill"></i> DESCUADRE: $' + diferencia.toFixed(2) + ' - Corrige antes de guardar';
+        } else {
+            // Supervisor/Owner: permitir (se guardara como Observada)
+            if (btnGuardar) {
+                btnGuardar.disabled = false;
+                btnGuardar.classList.remove('disabled');
+            }
+            estado.className = 'estado-validacion observada';
+            estado.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> DESCUADRE: $' + diferencia.toFixed(2) + ' - Se guardara como Observada';
+        }
     }
 
     // Marcar categorias excedidas
