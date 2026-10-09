@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -37,8 +37,9 @@
                     <i class="bi bi-file-earmark-text"></i> Facturas
                 </a>
 
-                {# ---- Solo empleados con sucursal activa: registrar factura ---- #}
-                {% if current_user.is_empleado() and current_user.sucursal and current_user.sucursal.estado == 'Activa' %}
+                {# ---- Empleados y supervisores con sucursal activa: registrar factura ---- #}
+                {% if (current_user.is_empleado() or current_user.is_supervisor()) and current_user.sucursal and
+                current_user.sucursal.estado == 'Activa' %}
                 <a href="{{ url_for('facturas_ui.create_page') }}"
                     class="sidebar-item {% if request.endpoint == 'facturas_ui.create_page' %}active{% endif %}">
                     <i class="bi bi-plus-circle"></i> Registrar factura
@@ -69,8 +70,8 @@
                 </a>
                 {% endif %}
 
-                {# ---- Comunes: Artesanos AI ---- #}
-                {% if current_user.is_owner() %}
+                {# ---- Owner y supervisor: Artesanos AI ---- #}
+                {% if current_user.is_owner() or current_user.is_supervisor() %}
                 <a href="{{ url_for('artesanos_ai.index') }}"
                     class="sidebar-item {% if 'artesanos_ai' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-robot"></i> Artesanos AI
@@ -80,37 +81,37 @@
             <div class="sidebar-user">
                 {% if current_user.is_owner() %}
                 <a href="{{ url_for('perfil.index') }}" class="sidebar-user-link" title="Mi perfil">
-                {% else %}
-                <div class="sidebar-user-link" style="cursor:default;">
-                {% endif %}
-                    <i class="bi bi-person-circle"></i>
-                    <div>
-                        <strong>{{ current_user.nombre }}</strong>
-                        <small>{{ current_user.rol|capitalize }}{% if current_user.sucursal %} · {{
-                            current_user.sucursal.nombre }}{% endif %}</small>
-                    </div>
-                {% if current_user.is_owner() %}
+                    {% else %}
+                    <div class="sidebar-user-link" style="cursor:default;">
+                        {% endif %}
+                        <i class="bi bi-person-circle"></i>
+                        <div>
+                            <strong>{{ current_user.nombre }}</strong>
+                            <small>{{ current_user.rol|capitalize }}{% if current_user.sucursal %} · {{
+                                current_user.sucursal.nombre }}{% endif %}</small>
+                        </div>
+                        {% if current_user.is_owner() %}
                 </a>
                 {% else %}
-                </div>
-                {% endif %}
-                <a href="{{ url_for('auth.logout') }}" title="Cerrar sesion"><i class="bi bi-box-arrow-right"></i></a>
             </div>
-        </aside>
-
-        <main class="artesanos-content">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
             {% endif %}
-            {% endwith %}
-            {% block body_content %}{% endblock %}
-        </main>
+            <a href="{{ url_for('auth.logout') }}" title="Cerrar sesion"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+    </aside>
+
+    <main class="artesanos-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% block body_content %}{% endblock %}
+    </main>
     </div>
     {% else %}
     {% block content %}{% endblock %}

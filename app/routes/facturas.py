@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+﻿from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date
 from app import db
@@ -98,9 +98,17 @@ def create_factura():
             'success': False,
             'error': f'La suma de categorias (${suma_detalles:.2f}) supera el total de la factura (${total_factura:.2f})'
         }), 400
-    es_valida, mensaje, _ = validar_factura(detalles, total_factura)
-    estado = 'Validada' if es_valida else 'Observada'
+        es_valida, mensaje, _ = validar_factura(detalles, total_factura)
 
+    # REGLA: empleados NO pueden guardar facturas descuadradas
+    if not es_valida and current_user.is_empleado():
+        return jsonify({
+            'success': False,
+            'error': f'El desglose no cuadra con el total. Diferencia: ${total_factura - suma_detalles:.2f}. Contacta a tu supervisor.',
+            'requiere_revision': True
+        }), 400
+
+    estado = 'Validada' if es_valida else 'Observada'
     try:
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else date.today()
     except ValueError:

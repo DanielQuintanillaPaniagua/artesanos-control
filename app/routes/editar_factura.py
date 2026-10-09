@@ -109,7 +109,14 @@ def guardar_correccion(factura_id):
         factura.total_factura = float(total)
         factura.fecha = fecha
         factura.proveedor_id = proveedor_id
-        factura.estado = "Validada"
+
+# Regla: supervisor edita -> queda Observada + notifica al owner
+        if current_user.is_supervisor():
+            factura.estado = "Observada"
+            factura.observacion = f"Editada por supervisor {current_user.nombre}. Requiere revisión del owner."
+        else:
+            factura.estado = "Validada"
+            factura.observacion = None
 
         DetalleFactura.query.filter_by(factura_id=factura.id).delete()
         nuevos = [
