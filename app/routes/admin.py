@@ -99,11 +99,11 @@ def usuario_nuevo():
             errores.append(f'El usuario "{usuario}" ya existe.')
         if email and User.query.filter_by(email=email).first():
             errores.append(f'El email "{email}" ya esta en uso.')
-        if rol not in ('owner', 'empleado'):
+        if rol not in ('owner', 'empleado', 'supervisor'):
             errores.append('Rol invalido.')
         # Owner: sucursal obligatoria
-        if rol == 'empleado' and not sucursal_id:
-            errores.append('Los empleados deben tener una sucursal asignada.')
+        if rol in ('empleado', 'supervisor') and not sucursal_id:
+            errores.append('Los empleados y supervisores deben tener una sucursal asignada.')
         if sucursal_id and not Sucursal.query.get(sucursal_id):
             errores.append('La sucursal seleccionada no existe.')
 
@@ -124,7 +124,7 @@ def usuario_nuevo():
             usuario=usuario,
             email=email,
             rol=rol,
-            sucursal_id=sucursal_id if rol == 'empleado' else None,
+            sucursal_id=sucursal_id if rol in ('empleado', 'supervisor') else None,
             estado='Activo',
         )
         u.set_password(password)
@@ -171,10 +171,10 @@ def usuario_editar(user_id):
             existe_email = User.query.filter(User.email == email, User.id != u.id).first()
             if existe_email:
                 errores.append(f'El email "{email}" ya esta en uso.')
-        if rol not in ('owner', 'empleado'):
+        if rol not in ('owner','supervisor','empleado'):
             errores.append('Rol invalido.')
-        if rol == 'empleado' and not sucursal_id:
-            errores.append('Los empleados deben tener una sucursal asignada.')
+        if rol in ('empleado', 'supervisor') and not sucursal_id:
+            errores.append('Los empleados y supervisores deben tener una sucursal asignada.')
         # Password opcional: si se ingresa, minimo 6
         if password and len(password) < 6:
             errores.append('La nueva contrasena debe tener al menos 6 caracteres.')

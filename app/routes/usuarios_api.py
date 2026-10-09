@@ -116,10 +116,12 @@ def crear():
         errores.append(f'El usuario "{usuario}" ya existe')
     if email and User.query.filter_by(email=email).first():
         errores.append(f'El email "{email}" ya esta en uso')
-    if rol not in ('owner', 'empleado'):
+    if rol not in ('owner', 'empleado', 'supervisor'):
         errores.append('Rol invalido')
-    if rol == 'empleado' and not sucursal_id:
-        errores.append('Los empleados deben tener una sucursal')
+    if rol in ('empleado', 'supervisor') and not sucursal_id:
+        errores.append('Los empleados y supervisores deben tener una sucursal asignada.')
+    if sucursal_id and not Sucursal.query.get(sucursal_id):
+        errores.append('La sucursal seleccionada no existe.')   
 
     if errores:
         return jsonify({'success': False, 'errores': errores}), 400
@@ -130,7 +132,7 @@ def crear():
             usuario=usuario,
             email=email,
             rol=rol,
-            sucursal_id=sucursal_id if rol == 'empleado' else None,
+            sucursal_id=sucursal_id if rol in ('empleado', 'supervisor') else None,
             estado='Activo',
         )
         u.set_password(password)
@@ -187,10 +189,10 @@ def actualizar(user_id):
         if existe_email:
             errores.append(f'El email "{email}" ya esta en uso')
 
-    if rol not in ('owner', 'empleado'):
+    if rol not in ('owner','supervisor','empleado'):
         errores.append('Rol invalido')
-    if rol == 'empleado' and not sucursal_id:
-        errores.append('Los empleados deben tener una sucursal')
+    if rol in ('empleado', 'supervisor') and not sucursal_id:
+        errores.append('Los empleados y supervisores deben tener una sucursal asignada.')
     if password and len(password) < 6:
         errores.append('La contrasena debe tener al menos 6 caracteres')
     if u.id == current_user.id and estado != 'Activo':
