@@ -252,6 +252,9 @@ def usuario_editar(user_id):
 def usuario_toggle_estado(user_id):
     _solo_owner()
     u = User.query.get_or_404(user_id)
+        # Supervisor: solo puede activar/desactivar usuarios de su sucursal
+    if current_user.is_supervisor() and u.sucursal_id != current_user.sucursal_id:
+        abort(403)
 
     if u.id == current_user.id:
         flash('No puedes cambiar tu propio estado.', 'warning')
@@ -269,6 +272,9 @@ def usuario_toggle_estado(user_id):
 def usuario_resetear_password(user_id):
     _solo_owner()
     u = User.query.get_or_404(user_id)
+        # Supervisor: solo puede resetear contraseñas de su sucursal
+    if current_user.is_supervisor() and u.sucursal_id != current_user.sucursal_id:
+        abort(403)
 
     password = (request.form.get('password') or '').strip()
     confirmar = (request.form.get('confirmar') or '').strip()
