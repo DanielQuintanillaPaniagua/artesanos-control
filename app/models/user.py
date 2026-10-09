@@ -30,6 +30,25 @@ class User(UserMixin, db.Model):
 
     def is_empleado(self):
         return self.rol == 'empleado'
+    def is_empleado(self):
+        return self.rol == 'empleado'
+
+    def is_supervisor(self):
+        return self.rol == 'supervisor'
+
+    def puede_gestionar_sucursal(self, sucursal_id):
+        """Owner: todas. Supervisor: solo la suya. Empleado: ninguna."""
+        if self.is_owner():
+            return True
+        if self.is_supervisor() and self.sucursal_id == sucursal_id:
+            return True
+        return False
+
+    def puede_ver_sucursal(self, sucursal_id):
+        """Owner: todas. Supervisor/Empleado: solo la suya."""
+        if self.is_owner():
+            return True
+        return self.sucursal_id == sucursal_id
 
     def to_dict(self):
         return {
@@ -98,19 +117,8 @@ class PasswordResetToken(db.Model):
     def __repr__(self):
         return f'<PasswordResetToken user_id={self.user_id} usado={self.usado}>'
 
-def is_supervisor(self):
-    return self.rol == 'supervisor'
 
-def puede_gestionar_sucursal(self, sucursal_id):
-    """Owner: todas. Supervisor: solo la suya. Empleado: ninguna."""
-    if self.is_owner():
-        return True
-    if self.is_supervisor() and self.sucursal_id == sucursal_id:
-        return True
-    return False
 
-def puede_ver_sucursal(self, sucursal_id):
-    """Owner: todas. Supervisor/Empleado: solo la suya."""
-    if self.is_owner():
-        return True
-    return self.sucursal_id == sucursal_id
+
+
+

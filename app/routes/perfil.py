@@ -5,11 +5,10 @@ from app import db
 
 bp = Blueprint('perfil', __name__, url_prefix='/perfil')
 
-
 def _solo_owner():
-    """Solo los owners pueden gestionar su propia contrasena.
+    """Owner y supervisor pueden gestionar su propia contrasena.
     Los empleados deben pedirle al admin que les cambie la clave."""
-    if not current_user.is_owner():
+    if not (current_user.is_owner() or current_user.is_supervisor()):
         abort(403)
 
 

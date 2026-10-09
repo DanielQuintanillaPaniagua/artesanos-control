@@ -21,8 +21,12 @@ def chat():
     if not mensaje:
         return jsonify({'ok': False, 'error': 'Mensaje vacio'}), 400
 
-    # Opcional: filtro por sucursal (si se pasa)
+    # Opcional: filtro por sucursal
     sucursal_id = data.get('sucursal_id')
+
+    # Supervisor: forzar su propia sucursal (no puede ver otras)
+    if current_user.is_supervisor():
+        sucursal_id = current_user.sucursal_id
 
     resultado = preguntar_a_artesanos_ai(mensaje, historial=historial, sucursal_id=sucursal_id)
 
