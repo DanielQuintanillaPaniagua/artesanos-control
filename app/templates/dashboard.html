@@ -15,9 +15,9 @@
             <h1>Dashboard</h1>
             <p>
                 {% if current_user.is_owner() %}
-                    Resumen general de todas las sucursales
+                Resumen general de todas las sucursales
                 {% else %}
-                    Resumen de tu sucursal
+                Resumen de tu sucursal
                 {% endif %}
             </p>
         </div>
@@ -30,9 +30,9 @@
                     <span class="label">Sucursal:</span>
                     <span class="valor">
                         {% if sucursal_filtro %}
-                            {% for s in sucursales %}{% if s.id == sucursal_filtro %}{{ s.nombre }}{% endif %}{% endfor %}
+                        {% for s in sucursales %}{% if s.id == sucursal_filtro %}{{ s.nombre }}{% endif %}{% endfor %}
                         {% else %}
-                            Todas las sucursales
+                        Todas las sucursales
                         {% endif %}
                     </span>
                 </span>
@@ -41,14 +41,14 @@
             <ul class="dropdown-menu">
                 <li>
                     <a class="dropdown-item {% if not sucursal_filtro %}active{% endif %}"
-                       href="{{ url_for('dashboard.index') }}">
+                        href="{{ url_for('dashboard.index') }}">
                         Todas las sucursales
                     </a>
                 </li>
                 {% for s in sucursales %}
                 <li>
                     <a class="dropdown-item {% if sucursal_filtro == s.id %}active{% endif %}"
-                       href="{{ url_for('dashboard.index', sucursal=s.id) }}">
+                        href="{{ url_for('dashboard.index', sucursal=s.id) }}">
                         {{ s.nombre }}
                     </a>
                 </li>
@@ -134,7 +134,7 @@
     {% endif %}
 
     {# ---------- Tabla simplificada (empleado) ---------- #}
-    {% if current_user.is_empleado() %}
+    {% if current_user.is_empleado() or current_user.is_supervisor() %}
     <section class="dash-panel">
         <div class="dash-panel-head">
             <h2>Desempeño de la sucursal</h2>
@@ -152,7 +152,8 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><span class="dash-suc-name">{{ current_user.sucursal.nombre if current_user.sucursal else '—' }}</span></td>
+                    <td><span class="dash-suc-name">{{ current_user.sucursal.nombre if current_user.sucursal else '—'
+                            }}</span></td>
                     <td>{{ metricas.total_facturas }}</td>
                     <td>${{ '{:,.2f}'.format(metricas.total_monto) }}</td>
                     <td class="dash-ok">{{ metricas.validadas }}</td>
@@ -189,8 +190,8 @@
                 <line x1="0" y1="100" x2="560" y2="100" stroke="#eef1ef" stroke-width="1" />
                 <line x1="0" y1="145" x2="560" y2="145" stroke="#eef1ef" stroke-width="1" />
                 {% if metricas.linea_puntos %}
-                <polyline points="{{ metricas.linea_puntos }}" fill="none" stroke="#1f6b45"
-                    stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                <polyline points="{{ metricas.linea_puntos }}" fill="none" stroke="#1f6b45" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round" />
                 {% for p in metricas.linea_circulos %}
                 <circle cx="{{ p.x }}" cy="{{ p.y }}" r="4" fill="#1f6b45" />
                 {% endfor %}

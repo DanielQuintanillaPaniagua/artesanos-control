@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+﻿from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 from datetime import date, timedelta
 
@@ -102,8 +102,8 @@ def index():
 
     base = Factura.query.filter(Factura.fecha >= inicio_mes)
 
-    # ------- Empleado: solo su sucursal -------
-    if current_user.is_empleado():
+        # ------- Empleado o supervisor: solo su sucursal -------
+    if current_user.is_empleado() or current_user.is_supervisor():
         if current_user.sucursal_id:
             base = base.filter(Factura.sucursal_id == current_user.sucursal_id)
         else:
