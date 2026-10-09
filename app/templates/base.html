@@ -46,7 +46,7 @@
                 </a>
                 {% endif %}
 
-                {# ---- Solo owner: sucursales + administracion ---- #}
+                {# ---- Owner: sucursales + administracion + reportes ---- #}
                 {% if current_user.is_owner() %}
                 <a href="{{ url_for('admin.sucursales') }}"
                     class="sidebar-item {% if 'sucursales' in request.endpoint %}active{% endif %}">
@@ -59,6 +59,26 @@
                 <a href="{{ url_for('admin.index') }}"
                     class="sidebar-item {% if request.endpoint == 'admin.index' %}active{% endif %}">
                     <i class="bi bi-gear"></i> Administracion
+                </a>
+                {% endif %}
+
+                {# ---- Supervisor: usuarios + reportes (solo su sucursal) ---- #}
+                {% if current_user.is_supervisor() %}
+                <a href="{{ url_for('admin.usuarios') }}"
+                    class="sidebar-item {% if 'usuarios' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-people"></i> Usuarios
+                </a>
+                <a href="{{ url_for('admin.reportes') }}"
+                    class="sidebar-item {% if 'reportes' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-bar-chart"></i> Reportes
+                </a>
+                {% endif %}
+
+                {# ---- Owner y supervisor: Mi perfil ---- #}
+                {% if current_user.is_owner() or current_user.is_supervisor() %}
+                <a href="{{ url_for('perfil.index') }}"
+                    class="sidebar-item {% if 'perfil' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-person-circle"></i> Mi perfil
                 </a>
                 {% endif %}
 

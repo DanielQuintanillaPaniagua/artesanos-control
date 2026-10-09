@@ -13,9 +13,12 @@ from app.models.detalle_factura import DetalleFactura
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 
-
 def _solo_owner():
     if not current_user.is_owner():
+        abort(403)
+
+def _solo_owner_o_supervisor():
+    if not (current_user.is_owner() or current_user.is_supervisor()):
         abort(403)
 
 
@@ -25,7 +28,7 @@ def _solo_owner():
 @bp.route('/')
 @login_required
 def index():
-    _solo_owner()
+    _solo_owner_o_supervisor()
 
     hoy = date.today()
     inicio_mes = hoy.replace(day=1)
@@ -68,7 +71,7 @@ def index():
 @bp.route('/usuarios')
 @login_required
 def usuarios():
-    _solo_owner()
+    _solo_owner_o_supervisor()
 
     # Supervisor solo ve usuarios de su sucursal
     query = User.query
@@ -82,7 +85,7 @@ def usuarios():
 @bp.route('/usuarios/nuevo', methods=['GET', 'POST'])
 @login_required
 def usuario_nuevo():
-    _solo_owner()
+    _solo_owner_o_supervisor()
     sucursales = Sucursal.query.order_by(Sucursal.nombre).all()
 
     # Supervisor: solo puede crear usuarios en su propia sucursal
@@ -163,7 +166,7 @@ def usuario_nuevo():
 @bp.route('/usuarios/<int:user_id>/editar', methods=['GET', 'POST'])
 @login_required
 def usuario_editar(user_id):
-    _solo_owner()
+    _solo_owner_o_supervisor()
     u = User.query.get_or_404(user_id)
 
     # Supervisor: solo puede editar usuarios de su sucursal
@@ -250,9 +253,9 @@ def usuario_editar(user_id):
 @bp.route('/usuarios/<int:user_id>/toggle-estado', methods=['POST'])
 @login_required
 def usuario_toggle_estado(user_id):
-    _solo_owner()
+    _solo_owner_o_supervisor()
     u = User.query.get_or_404(user_id)
-        # Supervisor: solo puede activar/desactivar usuarios de su sucursal
+    # Supervisor: solo puede activar/desactivar usuarios de su sucursal
     if current_user.is_supervisor() and u.sucursal_id != current_user.sucursal_id:
         abort(403)
 
@@ -270,9 +273,9 @@ def usuario_toggle_estado(user_id):
 @bp.route('/usuarios/<int:user_id>/resetear-password', methods=['POST'])
 @login_required
 def usuario_resetear_password(user_id):
-    _solo_owner()
+    _solo_owner_o_supervisor()
     u = User.query.get_or_404(user_id)
-        # Supervisor: solo puede resetear contraseñas de su sucursal
+    # Supervisor: solo puede resetear contraseñas de su sucursal
     if current_user.is_supervisor() and u.sucursal_id != current_user.sucursal_id:
         abort(403)
 
@@ -461,7 +464,7 @@ def _csv_response(rows, headers, filename):
 @bp.route('/reportes')
 @login_required
 def reportes():
-    _solo_owner()
+    _solo_owner_o_supervisor()
     sucursales = Sucursal.query.order_by(Sucursal.nombre).all()
     return render_template('admin/reportes.html', sucursales=sucursales)
 
@@ -469,7 +472,7 @@ def reportes():
 @bp.route('/reportes/facturas.csv')
 @login_required
 def reporte_facturas_csv():
-    _solo_owner()
+    _solo_owner_o_supervisor()
 
     desde_str = (request.args.get('desde') or '').strip()
     hasta_str = (request.args.get('hasta') or '').strip()
@@ -714,7 +717,7 @@ from app.models.proveedor import Proveedor
 @bp.route('/reportes/facturas.xlsx')
 @login_required
 def reporte_facturas_excel():
-    _solo_owner()
+    _solo_owner_o_supervisor()
 
     desde_str = (request.args.get('desde') or '').strip()
     hasta_str = (request.args.get('hasta') or '').strip()
