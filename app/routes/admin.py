@@ -199,7 +199,7 @@ def usuario_editar(user_id):
         u.usuario = usuario
         u.email = email
         u.rol = rol
-        u.sucursal_id = sucursal_id if rol == 'empleado' else None
+        u.sucursal_id = sucursal_id if rol in ('empleado', 'supervisor') else None
         u.estado = nuevo_estado
         if password:
             u.set_password(password)
