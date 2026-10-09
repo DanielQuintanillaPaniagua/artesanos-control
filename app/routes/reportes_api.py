@@ -25,10 +25,10 @@ bp = Blueprint('reportes_api', __name__, url_prefix='/api/reportes')
 # HELPERS
 # ============================================================
 def _solo_owner():
-    if not current_user.is_owner():
-        return jsonify({'success': False, 'error': 'Solo el administrador puede acceder'}), 403
+    """Owner o supervisor pueden acceder a reportes."""
+    if not (current_user.is_owner() or current_user.is_supervisor()):
+        return jsonify({'success': False, 'error': 'Solo el administrador o supervisor pueden acceder'}), 403
     return None
-
 
 def _parse_fechas():
     hoy = date.today()

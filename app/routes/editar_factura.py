@@ -1,4 +1,4 @@
-import json
+﻿import json
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
@@ -16,8 +16,13 @@ editar_factura_bp = Blueprint("editar_factura", __name__)
 
 
 def _no_es_owner():
-    return not current_user.is_owner()
-
+    """Retorna True si el usuario NO puede editar facturas.
+    Owner: todas. Supervisor: solo su sucursal. Empleado: ninguna."""
+    if current_user.is_owner():
+        return False
+    if current_user.is_supervisor():
+        return False
+    return True
 
 def _instantanea(factura, detalles):
     return {
