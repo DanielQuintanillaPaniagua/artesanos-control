@@ -69,7 +69,13 @@ def index():
 @login_required
 def usuarios():
     _solo_owner()
-    usuarios = User.query.order_by(User.nombre).all()
+
+    # Supervisor solo ve usuarios de su sucursal
+    query = User.query
+    if current_user.is_supervisor():
+        query = query.filter(User.sucursal_id == current_user.sucursal_id)
+
+    usuarios = query.order_by(User.nombre).all()
     return render_template('admin/usuarios.html', usuarios=usuarios)
 
 
@@ -79,6 +85,9 @@ def usuario_nuevo():
     _solo_owner()
     sucursales = Sucursal.query.order_by(Sucursal.nombre).all()
 
+    # Supervisor: solo puede crear usuarios en su propia sucursal
+    if current_user.is_supervisor():
+        sucursales = [s for s in sucursales if s.id == current_user.sucursal_id]
     if request.method == 'POST':
         nombre = (request.form.get('nombre') or '').strip()
         usuario = (request.form.get('usuario') or '').strip().lower()
@@ -86,6 +95,14 @@ def usuario_nuevo():
         rol = request.form.get('rol') or 'empleado'
         sucursal_id = request.form.get('sucursal_id', type=int)
         password = request.form.get('password') or ''
+
+        # Supervisor: forzar su propia sucursal y bloquear crear owners
+        if current_user.is_supervisor():
+            sucursal_id = current_user.sucursal_id
+            if rol == 'owner':
+                flash('Un supervisor no puede crear administradores.', 'danger')
+                return render_template('admin/usuario_form.html', modo='nuevo',
+                                       usuario=None, sucursales=sucursales, form_data=request.form)
 
         # Validaciones
         errores = []
@@ -148,6 +165,11 @@ def usuario_nuevo():
 def usuario_editar(user_id):
     _solo_owner()
     u = User.query.get_or_404(user_id)
+
+    # Supervisor: solo puede editar usuarios de su sucursal
+    if current_user.is_supervisor() and u.sucursal_id != current_user.sucursal_id:
+        abort(403)
+
     sucursales = Sucursal.query.order_by(Sucursal.nombre).all()
 
     if request.method == 'POST':
@@ -157,6 +179,14 @@ def usuario_editar(user_id):
         rol = request.form.get('rol') or 'empleado'
         sucursal_id = request.form.get('sucursal_id', type=int)
         password = (request.form.get('password') or '').strip()
+
+        # Supervisor: forzar su propia sucursal y bloquear crear owners
+        if current_user.is_supervisor():
+            sucursal_id = current_user.sucursal_id
+            if rol == 'owner':
+                flash('Un supervisor no puede promover a administrador.', 'danger')
+                return render_template('admin/usuario_form.html', modo='editar',
+                                       usuario=u, sucursales=sucursales, form_data=request.form)
 
         errores = []
         if not nombre or len(nombre) < 3:

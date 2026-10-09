@@ -49,6 +49,11 @@ def listar():
         sucursal_id = request.args.get('sucursal', type=int)
 
         query = User.query
+
+        # Supervisor solo ve usuarios de su sucursal
+        if current_user.is_supervisor():
+            query = query.filter(User.sucursal_id == current_user.sucursal_id)
+
         if rol:
             query = query.filter(User.rol == rol)
         if estado:
