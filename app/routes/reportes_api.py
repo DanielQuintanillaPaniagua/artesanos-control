@@ -75,8 +75,12 @@ def facturas():
             Factura.fecha <= hasta,
         )
 
-        if sucursal_id:
+        # Supervisor: forzar su propia sucursal (ignorar lo que envie el cliente)
+        if current_user.is_supervisor():
+            query = query.filter(Factura.sucursal_id == current_user.sucursal_id)
+        elif sucursal_id:
             query = query.filter(Factura.sucursal_id == sucursal_id)
+
         if estado:
             query = query.filter(Factura.estado == estado)
 
@@ -134,12 +138,17 @@ def usuarios():
         sucursal_id = request.args.get('sucursal', type=int)
 
         query = User.query
+
+        # Supervisor: forzar su propia sucursal
+        if current_user.is_supervisor():
+            query = query.filter(User.sucursal_id == current_user.sucursal_id)
+        elif sucursal_id:
+            query = query.filter(User.sucursal_id == sucursal_id)
+
         if rol:
             query = query.filter(User.rol == rol)
         if estado:
             query = query.filter(User.estado == estado)
-        if sucursal_id:
-            query = query.filter(User.sucursal_id == sucursal_id)
 
         usuarios = query.order_by(User.nombre).all()
 
@@ -280,8 +289,13 @@ def facturas_xlsx():
             Factura.fecha >= desde,
             Factura.fecha <= hasta,
         )
-        if sucursal_id:
+
+        # Supervisor: forzar su propia sucursal
+        if current_user.is_supervisor():
+            query = query.filter(Factura.sucursal_id == current_user.sucursal_id)
+        elif sucursal_id:
             query = query.filter(Factura.sucursal_id == sucursal_id)
+
         if estado:
             query = query.filter(Factura.estado == estado)
 
@@ -314,7 +328,13 @@ def usuarios_xlsx():
     if err: return err
 
     try:
-        usuarios = User.query.order_by(User.nombre).all()
+        query = User.query
+
+        # Supervisor: forzar su propia sucursal
+        if current_user.is_supervisor():
+            query = query.filter(User.sucursal_id == current_user.sucursal_id)
+
+        usuarios = query.order_by(User.nombre).all()
         buffer = exportar_usuarios_excel(usuarios)
         filename = f'usuarios_{date.today().strftime("%Y%m%d")}.xlsx'
 
