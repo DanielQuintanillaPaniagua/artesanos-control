@@ -34,16 +34,25 @@ def _conversacion_directa(usuario1_id, usuario2_id):
 def _conversaciones_visibles():
     """Devuelve las conversaciones que el usuario puede ver.
 
-    Owner: General + todas las sucursales (NO ve las directas)
-    Supervisor: General + su sucursal + sus conversaciones directas
+    Owner: General + sucursales + sus chats directos
+    Supervisor: General + sus chats directos
     """
     if current_user.is_owner():
-        # Owner: NO ve conversaciones directas
+        # Owner: General + sucursales + sus directos
         return Conversacion.query.filter(
-            Conversacion.tipo.in_(['general', 'sucursal'])
+            db.or_(
+                Conversacion.tipo.in_(['general', 'sucursal']),
+                db.and_(
+                    Conversacion.tipo == 'directo',
+                    db.or_(
+                        Conversacion.usuario_a_id == current_user.id,
+                        Conversacion.usuario_b_id == current_user.id,
+                    )
+                )
+            )
         ).order_by(Conversacion.tipo.desc(), Conversacion.nombre).all()
 
-    # Supervisor: General + chats directos (SIN su propia sucursal, SIN otras sucursales)
+    # Supervisor: General + chats directos
     conversaciones = Conversacion.query.filter(
         db.or_(
             Conversacion.tipo == 'general',
@@ -63,8 +72,12 @@ def _conversaciones_visibles():
 def _puede_acceder(conv):
     """Verifica si el usuario actual puede acceder a la conversacion."""
     if current_user.is_owner():
-        # Owner NO puede acceder a chats directos
-        return conv.tipo in ('general', 'sucursal')
+        # Owner puede acceder a general, sucursal, y sus directos
+        if conv.tipo in ('general', 'sucursal'):
+            return True
+        if conv.tipo == 'directo':
+            return current_user.id in (conv.usuario_a_id, conv.usuario_b_id)
+        return False
 
     # Supervisor
     if conv.tipo == 'general':
@@ -132,20 +145,26 @@ def listar_supervisores():
     err = _solo_staff()
     if err: return err
 
-    if not current_user.is_supervisor():
-        return jsonify({'ok': False, 'error': 'Solo supervisores pueden ver esta lista'}), 403
-
     try:
-        supervisores = User.query.filter(
-            User.rol == 'supervisor',
-            User.estado == 'Activo',
-            User.id != current_user.id,
-        ).order_by(User.nombre).all()
+        if current_user.is_owner():
+            # Owner: ve TODOS los supervisores
+            supervisores = User.query.filter(
+                User.rol == 'supervisor',
+                User.estado == 'Activo',
+            ).order_by(User.nombre).all()
+        else:
+            # Supervisor: ve OTROS supervisores + owners
+            supervisores = User.query.filter(
+                User.estado == 'Activo',
+                User.id != current_user.id,
+                User.rol.in_(['owner', 'supervisor']),
+            ).order_by(User.rol.desc(), User.nombre).all()
 
         data = [{
             'id': s.id,
             'nombre': s.nombre,
             'usuario': s.usuario,
+            'rol': s.rol,
             'sucursal': s.sucursal.nombre if s.sucursal else None,
         } for s in supervisores]
 
@@ -168,15 +187,16 @@ def abrir_directo(user_id):
     err = _solo_staff()
     if err: return err
 
-    if not current_user.is_supervisor():
-        return jsonify({'ok': False, 'error': 'Solo supervisores pueden chatear directo'}), 403
-
     if user_id == current_user.id:
         return jsonify({'ok': False, 'error': 'No puedes chatear contigo mismo'}), 400
 
     otro = User.query.get(user_id)
-    if not otro or otro.rol != 'supervisor' or otro.estado != 'Activo':
-        return jsonify({'ok': False, 'error': 'Supervisor no encontrado'}), 404
+    if not otro or otro.estado != 'Activo':
+        return jsonify({'ok': False, 'error': 'Usuario no encontrado'}), 404
+
+    # Solo se puede chatear con owner o supervisor
+    if otro.rol not in ('owner', 'supervisor'):
+        return jsonify({'ok': False, 'error': 'Solo puedes chatear con administradores o supervisores'}), 403
 
     try:
         conv = _conversacion_directa(current_user.id, user_id)

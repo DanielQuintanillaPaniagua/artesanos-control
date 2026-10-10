@@ -14,7 +14,7 @@
         <div class="chat-sidebar-head">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h2 class="mb-0"><i class="bi bi-chat-dots"></i> Conversaciones</h2>
-                {% if current_user.is_supervisor() %}
+                {% if current_user.is_owner() or current_user.is_supervisor() %}
                 <button type="button" class="btn btn-sm btn-success" onclick="abrirModalNuevoChat()"
                     title="Nuevo chat directo">
                     <i class="bi bi-plus-lg"></i>
