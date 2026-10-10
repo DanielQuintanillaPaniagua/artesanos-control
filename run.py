@@ -17,7 +17,7 @@ with app.app_context():
 
 
 if __name__ == '__main__':
-    # Debug solo si FLASK_DEBUG=True
-    debug_mode = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    # Debug solo si FLASK_DEBUG=True (por defecto: False)
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     port = int(os.getenv('PORT', 5000))
     app.run(debug=debug_mode, port=port)

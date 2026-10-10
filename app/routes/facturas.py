@@ -7,9 +7,25 @@ from app.models.detalle_factura import DetalleFactura
 from app.models.proveedor import Proveedor
 from app.models.categoria import Categoria
 from app.services.validacion import validar_factura
-
+import math
 bp = Blueprint('facturas', __name__, url_prefix='/api/facturas')
 
+def _parsear_numero(valor, nombre='valor'):
+    """Convierte un valor a float de forma segura.
+    
+    Devuelve (float, None) si es valido, o (None, mensaje_error) si no.
+    """
+    if valor is None:
+        return 0.0, None
+    try:
+        numero = float(valor)
+    except (ValueError, TypeError):
+        return None, f'{nombre} debe ser un numero valido'
+    
+    if not math.isfinite(numero):
+        return None, f'{nombre} debe ser un numero finito'
+    
+    return numero, None
 
 def _sucursal_activa(user):
     """Verifica que el usuario tenga sucursal activa."""
@@ -67,7 +83,9 @@ def create_factura():
     fecha_str = data.get('fecha')
     tipo_documento = (data.get('tipo_documento') or '').strip()
     detalle = (data.get('detalle') or '').strip()
-    total_factura = float(data.get('total_factura') or 0)
+    total_factura, err = _parsear_numero(data.get('total_factura'), 'El total')
+    if err:
+        return jsonify({'success': False, 'error': err}), 400
     detalles = data.get('detalles', [])
 
     # 1. Validar campos requeridos
@@ -79,7 +97,9 @@ def create_factura():
 
     # 2. Validar que los montos sean positivos
     for d in detalles:
-        monto = float(d.get('monto', 0))
+        monto, err = _parsear_numero(d.get('monto'), 'El monto')
+        if err:
+            return jsonify({'success': False, 'error': err}), 400
         if monto < 0:
             return jsonify({
                 'success': False,
@@ -94,7 +114,10 @@ def create_factura():
         }), 400
 
         # 4. Validar la suma
-    suma_detalles = sum(float(d.get('monto', 0)) for d in detalles)
+    suma_detalles = sum(
+        _parsear_numero(d.get('monto'))[0] or 0
+        for d in detalles
+    )
     if suma_detalles > total_factura + 0.01:
         return jsonify({
             'success': False,
