@@ -38,10 +38,16 @@ def _rango(desde=None, hasta=None):
 
 
 def _query_base():
-    """Query base filtrada por rol del usuario."""
+    """Query base filtrada por rol del usuario.
+
+    Owner: ve todas
+    Supervisor: solo su sucursal
+    Empleado: solo su sucursal
+    """
     query = Factura.query
 
-    if current_user.is_empleado():
+    # Todos los que NO son owner ven solo su sucursal
+    if not current_user.is_owner():
         if current_user.sucursal_id:
             query = query.filter(Factura.sucursal_id == current_user.sucursal_id)
         else:

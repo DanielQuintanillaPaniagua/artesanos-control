@@ -37,6 +37,11 @@ def list_page():
     query = Factura.query
 
     # Rol
+    # Todos los que NO son owner ven solo su sucursal (empleado + supervisor)
+    if not current_user.is_owner():
+        query = query.filter(Factura.sucursal_id == current_user.sucursal_id)
+    elif sucursal_id:
+        query = query.filter(Factura.sucursal_id == sucursal_id)
     if current_user.is_empleado():
         query = query.filter(Factura.sucursal_id == current_user.sucursal_id)
     elif sucursal_id:
@@ -99,7 +104,8 @@ def create_page():
 def detail_page(factura_id):
     factura = Factura.query.get_or_404(factura_id)
 
-    if current_user.is_empleado() and factura.sucursal_id != current_user.sucursal_id:
+    # Todos los que NO son owner solo ven facturas de su sucursal
+    if not current_user.is_owner() and factura.sucursal_id != current_user.sucursal_id:
         abort(403)
 
     return render_template('facturas/detail.html', factura=factura)
