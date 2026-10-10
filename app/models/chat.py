@@ -7,11 +7,18 @@ class Conversacion(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(120), nullable=False)
-    tipo = db.Column(db.String(20), nullable=False)  # 'general' o 'sucursal'
+    tipo = db.Column(db.String(20), nullable=False)  # 'general', 'sucursal' o 'directo'
     sucursal_id = db.Column(db.Integer, db.ForeignKey('sucursales.id'), nullable=True)
+
+    # Para chats directos (1 a 1 entre supervisores)
+    usuario_a_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+    usuario_b_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
+
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     sucursal = db.relationship('Sucursal')
+    usuario_a = db.relationship('User', foreign_keys=[usuario_a_id])
+    usuario_b = db.relationship('User', foreign_keys=[usuario_b_id])
     mensajes = db.relationship('Mensaje', backref='conversacion', cascade='all, delete-orphan')
     miembros = db.relationship('ConversacionMiembro', backref='conversacion', cascade='all, delete-orphan')
 
@@ -126,5 +133,5 @@ class ConversacionMiembro(db.Model):
 
     def __repr__(self):
         return f'<ConversacionMiembro conv={self.conversacion_id} user={self.usuario_id}>'
-        
+
 
