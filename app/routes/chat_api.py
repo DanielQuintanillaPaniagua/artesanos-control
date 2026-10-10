@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from app import db
 from app.models.chat import Conversacion, Mensaje, ConversacionMiembro
+from app.models.user import User
 
 
 bp = Blueprint('chat_api', __name__, url_prefix='/api/chat')
@@ -19,39 +20,74 @@ def _solo_staff():
     return None
 
 
+def _conversacion_directa(usuario1_id, usuario2_id):
+    """Busca una conversacion directa entre 2 usuarios (en cualquier orden)."""
+    return Conversacion.query.filter(
+        Conversacion.tipo == 'directo',
+        db.or_(
+            db.and_(Conversacion.usuario_a_id == usuario1_id, Conversacion.usuario_b_id == usuario2_id),
+            db.and_(Conversacion.usuario_a_id == usuario2_id, Conversacion.usuario_b_id == usuario1_id),
+        )
+    ).first()
+
+
 def _conversaciones_visibles():
     """Devuelve las conversaciones que el usuario puede ver.
 
-    Owner: todas
-    Supervisor: General + su sucursal
+    Owner: General + todas las sucursales (NO ve las directas)
+    Supervisor: General + su sucursal + sus conversaciones directas
     """
-    query = Conversacion.query
+    if current_user.is_owner():
+        # Owner: NO ve conversaciones directas
+        return Conversacion.query.filter(
+            Conversacion.tipo.in_(['general', 'sucursal'])
+        ).order_by(Conversacion.tipo.desc(), Conversacion.nombre).all()
 
-    if current_user.is_supervisor():
-        # General + su sucursal
-        query = query.filter(
-            db.or_(
-                Conversacion.tipo == 'general',
-                db.and_(
-                    Conversacion.tipo == 'sucursal',
-                    Conversacion.sucursal_id == current_user.sucursal_id,
+    # Supervisor: General + chats directos (SIN su propia sucursal, SIN otras sucursales)
+    conversaciones = Conversacion.query.filter(
+        db.or_(
+            Conversacion.tipo == 'general',
+            db.and_(
+                Conversacion.tipo == 'directo',
+                db.or_(
+                    Conversacion.usuario_a_id == current_user.id,
+                    Conversacion.usuario_b_id == current_user.id,
                 )
             )
         )
-    # Owner: sin filtro (ve todas)
+    ).all()
 
-    return query.order_by(Conversacion.tipo.desc(), Conversacion.nombre).all()
+    return conversaciones
 
 
 def _puede_acceder(conv):
     """Verifica si el usuario actual puede acceder a la conversacion."""
     if current_user.is_owner():
-        return True
+        # Owner NO puede acceder a chats directos
+        return conv.tipo in ('general', 'sucursal')
+
+    # Supervisor
     if conv.tipo == 'general':
         return True
-    if current_user.is_supervisor() and conv.sucursal_id == current_user.sucursal_id:
-        return True
+    if conv.tipo == 'sucursal':
+        return conv.sucursal_id == current_user.sucursal_id
+    if conv.tipo == 'directo':
+        return current_user.id in (conv.usuario_a_id, conv.usuario_b_id)
     return False
+
+
+def _nombre_conversacion(conv):
+    """Devuelve el nombre visible de la conversacion para el usuario actual.
+
+    Para chats directos, muestra el nombre del OTRO usuario.
+    """
+    if conv.tipo == 'directo':
+        otro_id = conv.usuario_b_id if conv.usuario_a_id == current_user.id else conv.usuario_a_id
+        otro = User.query.get(otro_id)
+        if otro:
+            sucursal_nombre = otro.sucursal.nombre if otro.sucursal else 'Sin sucursal'
+            return f"{otro.nombre} ({sucursal_nombre})"
+    return conv.nombre
 
 
 # ============================================================
@@ -65,12 +101,103 @@ def listar_conversaciones():
 
     try:
         conversaciones = _conversaciones_visibles()
+
+        # Serializar con nombre personalizado
+        data = []
+        for c in conversaciones:
+            d = c.to_dict(usuario_actual=current_user)
+            d['nombre'] = _nombre_conversacion(c)
+            data.append(d)
+
+        # Ordenar: directos primero, luego general, luego sucursal
+        orden = {'directo': 0, 'general': 1, 'sucursal': 2}
+        data.sort(key=lambda x: (orden.get(x['tipo'], 99), x['nombre']))
+
         return jsonify({
             'ok': True,
-            'total': len(conversaciones),
-            'conversaciones': [c.to_dict(usuario_actual=current_user) for c in conversaciones],
+            'total': len(data),
+            'conversaciones': data,
         })
     except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+# ============================================================
+# GET /api/chat/supervisores
+# Lista de otros supervisores para iniciar chat directo
+# ============================================================
+@bp.route('/supervisores', methods=['GET'])
+@login_required
+def listar_supervisores():
+    err = _solo_staff()
+    if err: return err
+
+    if not current_user.is_supervisor():
+        return jsonify({'ok': False, 'error': 'Solo supervisores pueden ver esta lista'}), 403
+
+    try:
+        supervisores = User.query.filter(
+            User.rol == 'supervisor',
+            User.estado == 'Activo',
+            User.id != current_user.id,
+        ).order_by(User.nombre).all()
+
+        data = [{
+            'id': s.id,
+            'nombre': s.nombre,
+            'usuario': s.usuario,
+            'sucursal': s.sucursal.nombre if s.sucursal else None,
+        } for s in supervisores]
+
+        return jsonify({
+            'ok': True,
+            'total': len(data),
+            'supervisores': data,
+        })
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+
+# ============================================================
+# POST /api/chat/directo/<user_id>
+# Crear o abrir una conversacion directa con otro usuario
+# ============================================================
+@bp.route('/directo/<int:user_id>', methods=['POST'])
+@login_required
+def abrir_directo(user_id):
+    err = _solo_staff()
+    if err: return err
+
+    if not current_user.is_supervisor():
+        return jsonify({'ok': False, 'error': 'Solo supervisores pueden chatear directo'}), 403
+
+    if user_id == current_user.id:
+        return jsonify({'ok': False, 'error': 'No puedes chatear contigo mismo'}), 400
+
+    otro = User.query.get(user_id)
+    if not otro or otro.rol != 'supervisor' or otro.estado != 'Activo':
+        return jsonify({'ok': False, 'error': 'Supervisor no encontrado'}), 404
+
+    try:
+        conv = _conversacion_directa(current_user.id, user_id)
+
+        if not conv:
+            conv = Conversacion(
+                nombre=f'Directo {current_user.id}-{user_id}',
+                tipo='directo',
+                usuario_a_id=current_user.id,
+                usuario_b_id=user_id,
+            )
+            db.session.add(conv)
+            db.session.commit()
+
+        return jsonify({
+            'ok': True,
+            'conversacion_id': conv.id,
+            'nombre': _nombre_conversacion(conv),
+        })
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
@@ -91,7 +218,6 @@ def listar_mensajes(conv_id):
         return jsonify({'ok': False, 'error': 'Sin permisos'}), 403
 
     try:
-        # Ultimos 100 mensajes
         mensajes = (
             Mensaje.query
             .filter_by(conversacion_id=conv.id)
@@ -99,11 +225,15 @@ def listar_mensajes(conv_id):
             .limit(100)
             .all()
         )
-        mensajes.reverse()  # Orden cronologico
+        mensajes.reverse()
+
+        # Serializar conversacion con nombre personalizado
+        conv_data = conv.to_dict(usuario_actual=current_user)
+        conv_data['nombre'] = _nombre_conversacion(conv)
 
         return jsonify({
             'ok': True,
-            'conversacion': conv.to_dict(usuario_actual=current_user),
+            'conversacion': conv_data,
             'total': len(mensajes),
             'mensajes': [m.to_dict() for m in mensajes],
         })
@@ -144,7 +274,6 @@ def enviar_mensaje(conv_id):
         )
         db.session.add(mensaje)
 
-        # Actualizar ultima_lectura del autor
         miembro = ConversacionMiembro.query.filter_by(
             conversacion_id=conv.id,
             usuario_id=current_user.id,
@@ -157,7 +286,6 @@ def enviar_mensaje(conv_id):
             db.session.add(miembro)
 
         miembro.ultima_lectura = datetime.now(timezone.utc)
-
         db.session.commit()
 
         return jsonify({

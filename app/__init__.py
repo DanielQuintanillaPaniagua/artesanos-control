@@ -54,6 +54,7 @@ def create_app():
     from app.routes.categorias_api import bp as categorias_api_bp
     from app.routes.reportes_api import bp as reportes_api_bp
     from app.routes.chat_api import bp as chat_api_bp
+    from app.routes.chat_ui import bp as chat_ui_bp
     
 
 
@@ -75,6 +76,7 @@ def create_app():
     app.register_blueprint(categorias_api_bp)
     app.register_blueprint(reportes_api_bp)
     app.register_blueprint(chat_api_bp)
+    app.register_blueprint(chat_ui_bp)
 
 
     return app
