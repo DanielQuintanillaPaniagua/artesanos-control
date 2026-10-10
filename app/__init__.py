@@ -3,6 +3,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -11,6 +12,7 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env')
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
+csrf = CSRFProtect()
 
 
 def create_app():
@@ -26,6 +28,7 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    csrf.init_app(app)  
 
     login_manager.login_view = 'auth.login'
     login_manager.login_message = 'Por favor inicia sesion para continuar'

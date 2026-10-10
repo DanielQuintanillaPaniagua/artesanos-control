@@ -32,6 +32,7 @@
 
         <!-- Formulario -->
         <form method="POST" action="{{ url_for('auth.login') }}" class="login-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="input-group-custom">
                 <i class="bi bi-person input-icon"></i>

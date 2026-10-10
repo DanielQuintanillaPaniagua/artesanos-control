@@ -30,6 +30,7 @@
                     <h2>Datos del usuario</h2>
                 </div>
                 <form method="POST" class="p-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Nombre completo *</label>

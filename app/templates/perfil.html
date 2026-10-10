@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Mi perfil{% endblock %}
 
@@ -71,6 +71,7 @@
                     <h2><i class="bi bi-shield-lock me-2"></i>Cambiar contrasena</h2>
                 </div>
                 <form method="POST" action="{{ url_for('perfil.cambiar_password') }}" class="p-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
                         <label class="form-label">Contrasena actual *</label>
                         <input type="password" name="actual" class="form-control" required

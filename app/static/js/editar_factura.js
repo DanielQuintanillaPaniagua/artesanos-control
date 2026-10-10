@@ -49,10 +49,31 @@
     }
 
     function actualizarBoton() {
-        btn.disabled = !(cuadra && motivo.value.trim().length >= 5 && hayCambios());
-        btn.title = btn.disabled ? "Requiere: desglose cuadrado, motivo y al menos un cambio" : "";
-    }
+        const estadoFactura = form.dataset.estadoFactura;
+        const rolUsuario = form.dataset.rolUsuario;
 
+        // Regla: si la factura esta Observada y el usuario es owner,
+        // puede validarla SIN necesidad de cambios
+        const esOwner = rolUsuario === 'owner';
+        const estaObservada = estadoFactura === 'Observada';
+        const puedeValidarSinCambios = esOwner && estaObservada;
+
+        const cumpleRequisitos = cuadra
+            && motivo.value.trim().length >= 5
+            && (hayCambios() || puedeValidarSinCambios);
+
+        btn.disabled = !cumpleRequisitos;
+
+        if (btn.disabled) {
+            const faltantes = [];
+            if (!cuadra) faltantes.push("desglose cuadrado");
+            if (motivo.value.trim().length < 5) faltantes.push("motivo");
+            if (!hayCambios() && !puedeValidarSinCambios) faltantes.push("al menos un cambio");
+            btn.title = "Requiere: " + faltantes.join(", ");
+        } else {
+            btn.title = "";
+        }
+    }
     [total, proveedor, fecha, ...montos].forEach(el => el.addEventListener("input", validar));
     motivo.addEventListener("input", actualizarBoton);
 

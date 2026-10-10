@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}{{ 'Nueva sucursal' if modo == 'nueva' else 'Editar sucursal' }}{% endblock %}
 
@@ -29,6 +29,7 @@
                     <h2>Datos de la sucursal</h2>
                 </div>
                 <form method="POST" class="p-4">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label class="form-label">Nombre *</label>
