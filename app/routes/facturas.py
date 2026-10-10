@@ -26,7 +26,8 @@ def _sucursal_activa(user):
 @login_required
 def list_facturas():
     query = Factura.query
-    if current_user.is_empleado():
+    # Todos los que NO son owner ven solo su sucursal (empleado + supervisor)
+    if not current_user.is_owner():
         query = query.filter_by(sucursal_id=current_user.sucursal_id)
 
     facturas = query.order_by(Factura.fecha.desc()).all()
@@ -43,7 +44,8 @@ def get_factura(id):
     factura = Factura.query.get(id)
     if not factura:
         return jsonify({'success': False, 'error': 'Factura no encontrada'}), 404
-    if current_user.is_empleado() and factura.sucursal_id != current_user.sucursal_id:
+    # Todos los que NO son owner solo pueden ver facturas de su sucursal
+    if not current_user.is_owner() and factura.sucursal_id != current_user.sucursal_id:
         return jsonify({'success': False, 'error': 'Sin permisos'}), 403
     return jsonify({'success': True, 'factura': factura.to_dict()})
 
@@ -147,15 +149,20 @@ def create_factura():
 @bp.route('/<int:id>', methods=['DELETE'])
 @login_required
 def delete_factura(id):
+    # Solo el owner puede eliminar facturas
+    if not current_user.is_owner():
+        return jsonify({
+            'success': False,
+            'error': 'Solo el administrador puede eliminar facturas.'
+        }), 403
+
     factura = Factura.query.get(id)
     if not factura:
         return jsonify({'success': False, 'error': 'Factura no encontrada'}), 404
-    if current_user.is_empleado() and factura.sucursal_id != current_user.sucursal_id:
-        return jsonify({'success': False, 'error': 'Sin permisos'}), 403
+
     db.session.delete(factura)
     db.session.commit()
     return jsonify({'success': True, 'message': 'Factura eliminada'})
-
 
 # DATOS AUXILIARES PARA EL FORMULARIO
 

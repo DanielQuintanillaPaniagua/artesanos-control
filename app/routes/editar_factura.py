@@ -116,7 +116,7 @@ def guardar_correccion(factura_id):
 
         factura.total_factura = float(total)
         factura.fecha = fecha
-        proveedor_id = proveedor_id
+        factura.proveedor_id = proveedor_id
 
         # Regla: supervisor edita -> queda Observada + notifica al owner
         if current_user.is_supervisor():
