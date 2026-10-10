@@ -12,7 +12,9 @@
     {% block extra_css %}{% endblock %}
 </head>
 
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}"
+    data-user-role="{{ current_user.rol if current_user.is_authenticated else 'anonimo' }}"
+    data-user-id="{{ current_user.id if current_user.is_authenticated else 0 }}">
     <!-- Banner de conexion -->
     <div id="banner-conexion" class="banner-conexion" style="display: none;">
         <i class="bi bi-wifi-off"></i>
@@ -95,6 +97,14 @@
                 <a href="{{ url_for('artesanos_ai.index') }}"
                     class="sidebar-item {% if 'artesanos_ai' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-robot"></i> Artesanos AI
+                </a>
+                {% endif %}
+
+                {# ---- Owner y supervisor: Chat entre sucursales ---- #}
+                {% if current_user.is_owner() or current_user.is_supervisor() %}
+                <a href="{{ url_for('chat_ui.index') }}"
+                    class="sidebar-item {% if 'chat_ui' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-chat-dots"></i> Chat
                 </a>
                 {% endif %}
             </nav>

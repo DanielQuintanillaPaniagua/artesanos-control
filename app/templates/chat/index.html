@@ -1,0 +1,81 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Chat entre sucursales{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+{% endblock %}
+
+{% block body_content %}
+<div class="chat-layout">
+
+    {# ===== Columna 1: Lista de conversaciones ===== #}
+    <aside class="chat-sidebar">
+        <div class="chat-sidebar-head">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="mb-0"><i class="bi bi-chat-dots"></i> Conversaciones</h2>
+                {% if current_user.is_supervisor() %}
+                <button type="button" class="btn btn-sm btn-success" onclick="abrirModalNuevoChat()"
+                    title="Nuevo chat directo">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+                {% endif %}
+            </div>
+            <input type="search" id="chat-search" class="form-control form-control-sm"
+                placeholder="Buscar conversación...">
+        </div>
+
+        <ul class="chat-list" id="chat-list">
+            <li class="chat-list-empty">Cargando conversaciones...</li>
+        </ul>
+    </aside>
+
+    {# ===== Columna 2: Chat ===== #}
+    <section class="chat-main">
+        <header class="chat-main-head" id="chat-head">
+            <div>
+                <h2 id="chat-title">Selecciona una conversación</h2>
+                <p id="chat-subtitle">Chat entre sucursales</p>
+            </div>
+        </header>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty">
+                <i class="bi bi-chat-dots fs-1"></i>
+                <p>Selecciona una conversación para empezar</p>
+            </div>
+        </div>
+
+        <form class="chat-composer" id="chat-form" onsubmit="enviarMensaje(event)">
+            <input type="text" id="chat-input" class="form-control" placeholder="Escribe un mensaje..."
+                autocomplete="off" disabled>
+            <button type="submit" class="btn btn-chat-send" disabled>
+                <i class="bi bi-send"></i>
+            </button>
+        </form>
+    </section>
+</div>
+
+{# ===== Modal: Nuevo chat directo ===== #}
+<dialog id="modalNuevoChat" class="chat-modal">
+    <div class="chat-modal-content">
+        <div class="chat-modal-head">
+            <h3><i class="bi bi-people"></i> Nuevo chat directo</h3>
+            <button type="button" class="btn-close-modal" onclick="cerrarModalNuevoChat()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="chat-modal-body">
+            <p class="text-muted small mb-3">Selecciona un supervisor para chatear en privado:</p>
+            <ul class="chat-supervisores-list" id="chatSupervisoresList">
+                <li class="text-muted text-center py-3">Cargando...</li>
+            </ul>
+        </div>
+    </div>
+</dialog>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}
