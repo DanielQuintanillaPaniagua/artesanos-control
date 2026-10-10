@@ -32,20 +32,29 @@ El **owner** no registra facturas: las revisa, las corrige cuando hay errores (c
 
 ### 🔐 Autenticación y seguridad
 
-- Login con roles: **Owner** y **Empleado** (sesión ligada a una sucursal)
+- Login con **3 roles**: **Owner**, **Supervisor** y **Empleado**
 - Contraseñas hasheadas con **scrypt** (Werkzeug)
 - Recuperación de contraseña por email con token temporal
-- Bloqueo de acceso a sucursales inactivas
-- Permisos granulares por rol
+- Protección **CSRF** en formularios y endpoints AJAX
+- Bloqueo de acceso a sucursales inactivas (capa 8 en 8 niveles)
+- Permisos granulares por rol y sucursal
 
 ### 🧾 Gestión de facturas
 
 - Registro con validación automática de cuadre
 - **21 categorías de gasto** basadas en el Excel real de la empresa
-- Edición por el owner con **historial de correcciones**
+- Edición por el owner y el supervisor con **historial de correcciones**
 - Filtros por sucursal, rango de fechas y estado
-- Bloqueo si el desglose supera el total de la factura
+- Bloqueo si el desglose supera el total (los empleados no pueden guardar descuadres)
 - Modo offline con sincronización automática
+
+### 💬 Chat entre sucursales
+
+- **Chat General** para coordinación entre todas las sucursales
+- **Chat directo 1 a 1** entre supervisores y con el owner
+- Actualización automática cada 10 segundos (polling)
+- Contador de mensajes no leídos
+- Modal para iniciar chats directos
 
 ### 🛠️ Panel de administración
 
@@ -60,9 +69,9 @@ El **owner** no registra facturas: las revisa, las corrige cuando hay errores (c
 ### 🤖 Artesanos AI
 
 - Chat en lenguaje natural con **Google Gemini**
-- Contexto real de facturas, proveedores y sucursales
+- Contexto real de facturas, proveedores y sucursales (filtrado por sucursal)
 - Preguntas sugeridas para consultas rápidas
-- Acceso exclusivo para administradores
+- Acceso exclusivo para administradores y supervisores
 
 ---
 
@@ -74,6 +83,7 @@ El **owner** no registra facturas: las revisa, las corrige cuando hay errores (c
 | ORM | SQLAlchemy · Flask-SQLAlchemy |
 | Base de datos | MySQL 8 (producción) · MariaDB vía XAMPP (local) |
 | Autenticación | Flask-Login · Werkzeug Security (scrypt) |
+| Seguridad | Flask-WTF (CSRF) |
 | Migraciones | Flask-Migrate |
 | Frontend | HTML5 · CSS3 · JavaScript · Bootstrap 5.3 |
 | IA | Google Gemini API |
@@ -125,7 +135,7 @@ pip install -r requirements.txt
 
 **4. Configurar variables de entorno**
 
-Copia la plantilla y edítala con tus valores (ver la [tabla de variables](#-variables-de-entorno)):
+Copia la plantilla y edítala con tus valores (ver la tabla de variables de entorno más abajo):
 
 ```bash
 cp .env.example .env
@@ -168,7 +178,7 @@ python run.py
 
 | Rol | Usuario | Contraseña |
 |-----|---------|------------|
-| Admin | `admin` | Ver `crear_admin.py` |
+| Owner | `admin` | Ver `crear_admin.py` |
 
 > ⚠️ **IMPORTANTE:** cambia la contraseña del admin después del primer login.
 
@@ -176,18 +186,19 @@ python run.py
 
 ## 🗂️ Estructura del proyecto
 
-```
+```text
 artesanos-control/
 ├── app/
 │   ├── __init__.py              # Application Factory
 │   ├── models/                  # Modelos SQLAlchemy
-│   │   ├── user.py
+│   │   ├── user.py              # User + PasswordResetToken
 │   │   ├── sucursal.py
 │   │   ├── proveedor.py
 │   │   ├── categoria.py
 │   │   ├── factura.py
 │   │   ├── detalle_factura.py
-│   │   └── historial_correccion.py
+│   │   ├── historial_correccion.py
+│   │   └── chat.py              # Conversacion + Mensaje + ConversacionMiembro
 │   ├── routes/                  # Blueprints
 │   │   ├── auth.py
 │   │   ├── dashboard.py
@@ -198,15 +209,38 @@ artesanos-control/
 │   │   ├── perfil.py
 │   │   ├── recuperar.py
 │   │   ├── artesanos_ai.py
-│   │   └── ai_api.py
+│   │   ├── ai_api.py
+│   │   ├── chat_api.py
+│   │   ├── chat_ui.py
+│   │   ├── dashboard_api.py
+│   │   ├── usuarios_api.py
+│   │   ├── sucursales_api.py
+│   │   ├── proveedores_api.py
+│   │   ├── categorias_api.py
+│   │   └── reportes_api.py
 │   ├── services/                # Lógica de negocio
 │   │   ├── validacion.py
 │   │   ├── email_service.py
 │   │   ├── system_service.py
 │   │   ├── excel_service.py
 │   │   └── artesanos_ai.py
+│   ├── utils/
+│   │   └── permisos.py          # Decoradores de permisos
 │   ├── templates/               # Templates Jinja2
+│   │   ├── base.html
+│   │   ├── login.html
+│   │   ├── register.html
+│   │   ├── dashboard.html
+│   │   ├── perfil.html
+│   │   ├── api_docs.html
+│   │   ├── admin/
+│   │   ├── facturas/
+│   │   ├── recuperar/
+│   │   └── chat/
 │   ├── static/                  # CSS, JS, imágenes
+│   │   ├── css/
+│   │   ├── js/
+│   │   └── img/
 │   └── instance/                # SQLite (solo desarrollo)
 ├── migrations/                  # Flask-Migrate
 ├── backups/                     # Backups de BD (gitignored)
@@ -273,7 +307,7 @@ mysqldump -u artesanos -p --no-tablespaces artesanos_control > backup_$(date +%Y
 | `FLASK_SECRET_KEY` | Clave secreta de Flask | Generar con `secrets` |
 | `SQLALCHEMY_DATABASE_URI` | URI de conexión a MySQL | `mysql+pymysql://user:pass@host/db` |
 | `FLASK_ENV` | Entorno de Flask | `development` / `production` |
-| `FLASK_DEBUG` | Modo debug | `True` / `False` |
+| `FLASK_DEBUG` | Modo debug (`False` por defecto) | `True` / `False` |
 | `SMTP_HOST` | Servidor SMTP | `smtp.gmail.com` |
 | `SMTP_PORT` | Puerto SMTP | `587` |
 | `SMTP_USER` | Usuario SMTP | `correo@gmail.com` |
@@ -292,6 +326,14 @@ mysqldump -u artesanos -p --no-tablespaces artesanos_control > backup_$(date +%Y
 | `main` | Rama estable (producción) |
 | `daniel-pre-production` | Desarrollo y pruebas previas a producción |
 | `feature/xxx` | Nuevas funcionalidades |
+
+---
+
+## 📌 Versiones
+
+| Versión | Fecha | Cambios principales |
+|---------|-------|---------------------|
+| v1.0.0 | Octubre 2026 | Primera versión estable: 3 roles, chat interno, CSRF, API REST completa, IA con Gemini |
 
 ---
 
@@ -315,7 +357,7 @@ Proyecto privado de **ARTESANOS PIZZERÍA**. Todos los derechos reservados.
 
 <div align="center">
 
-Hecho con 🐍 Usulután, El Salvador 🇸🇻
+Hecho con 🐍 por [Daniel Quintanilla](https://github.com/DanielQuintanillaPaniagua) · Usulután, El Salvador 🇸🇻
 
 *Última actualización: octubre de 2026*
 
