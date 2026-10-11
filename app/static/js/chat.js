@@ -50,6 +50,19 @@ function formatearFechaSeparador(isoString) {
     return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
+// Escapa texto para insertarlo de forma segura en innerHTML
+function escapeHtml(texto) {
+    if (texto === null || texto === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(texto);
+    return div.innerHTML;
+}
+
+// Escapa texto para usar dentro de un atributo HTML
+function escapeAttr(texto) {
+    return escapeHtml(texto).replace(/"/g, '&quot;');
+}
+
 
 // ============================================
 // CARGAR CONVERSACIONES
@@ -60,7 +73,7 @@ async function cargarConversaciones() {
         const data = await resp.json();
 
         if (!data.ok) {
-            chatList.innerHTML = `<li class="chat-list-empty">Error: ${data.error}</li>`;
+            chatList.innerHTML = `<li class="chat-list-empty">Error: ${escapeHtml(data.error)}</li>`;
             return;
         }
 
@@ -75,7 +88,7 @@ async function cargarConversaciones() {
 function renderizarConversaciones() {
     const filtro = (chatSearch.value || '').toLowerCase();
     const filtradas = _conversaciones.filter(c =>
-        c.nombre.toLowerCase().includes(filtro)
+        (c.nombre || '').toLowerCase().includes(filtro)
     );
 
     if (!filtradas.length) {
@@ -83,24 +96,33 @@ function renderizarConversaciones() {
         return;
     }
 
-    chatList.innerHTML = filtradas.map(c => `
+    chatList.innerHTML = filtradas.map(c => {
+        const nombreSeguro = escapeHtml(c.nombre);
+        const previewUsuario = c.ultimo_mensaje_usuario
+            ? escapeHtml(c.ultimo_mensaje_usuario) + ': '
+            : '';
+        const previewMensaje = escapeHtml(c.ultimo_mensaje);
+        const inicialesSeguras = escapeHtml(iniciales(c.nombre));
+
+        return `
         <li class="chat-item ${_conversacionActual === c.id ? 'active' : ''}"
             data-id="${c.id}"
             onclick="seleccionarConversacion(${c.id})">
             <div class="chat-item-avatar ${c.tipo === 'general' ? 'general' : ''}">
-                ${iniciales(c.nombre)}
+                ${inicialesSeguras}
             </div>
             <div class="chat-item-body">
                 <div class="chat-item-title">
-                    <span>${c.nombre}</span>
-                    ${c.no_leidos > 0 ? `<span class="chat-item-badge">${c.no_leidos}</span>` : ''}
+                    <span>${nombreSeguro}</span>
+                    ${c.no_leidos > 0 ? `<span class="chat-item-badge">${Number(c.no_leidos) || 0}</span>` : ''}
                 </div>
                 <div class="chat-item-preview">
-                    ${c.ultimo_mensaje_usuario ? c.ultimo_mensaje_usuario + ': ' : ''}${c.ultimo_mensaje}
+                    ${previewUsuario}${previewMensaje}
                 </div>
             </div>
         </li>
-    `).join('');
+        `;
+    }).join('');
 }
 
 
@@ -113,7 +135,7 @@ function seleccionarConversacion(convId) {
     const conv = _conversaciones.find(c => c.id === convId);
     if (!conv) return;
 
-    // Actualizar header
+    // Actualizar header (textContent = seguro, no interpreta HTML)
     chatTitle.textContent = conv.nombre;
     chatSubtitle.textContent = conv.tipo === 'general'
         ? 'Canal general (todos)'
@@ -154,7 +176,7 @@ async function cargarMensajes() {
         const data = await resp.json();
 
         if (!data.ok) {
-            chatMessages.innerHTML = `<div class="chat-empty"><p>Error: ${data.error}</p></div>`;
+            chatMessages.innerHTML = `<div class="chat-empty"><p>Error: ${escapeHtml(data.error)}</p></div>`;
             return;
         }
 
@@ -184,18 +206,23 @@ function renderizarMensajes(mensajes) {
 
         // Separador de fecha
         if (fechaStr && fechaStr !== fechaAnterior) {
-            html += `<div class="chat-date-separator">${formatearFechaSeparador(m.created_at)}</div>`;
+            html += `<div class="chat-date-separator">${escapeHtml(formatearFechaSeparador(m.created_at))}</div>`;
             fechaAnterior = fechaStr;
         }
 
         const esMio = m.usuario_id === window.CURRENT_USER_ID;
+        const nombreSeguro = escapeHtml(m.usuario_nombre);
+        const inicialesSeguras = escapeHtml(iniciales(m.usuario_nombre));
+        const contenidoSeguro = escapeHtml(m.contenido);
+        const horaSegura = escapeHtml(formatearHora(m.created_at));
+
         html += `
             <div class="chat-msg ${esMio ? 'mine' : ''}">
-                <div class="chat-msg-avatar">${iniciales(m.usuario_nombre)}</div>
+                <div class="chat-msg-avatar">${inicialesSeguras}</div>
                 <div class="chat-msg-body">
-                    ${!esMio ? `<div class="chat-msg-author">${m.usuario_nombre}</div>` : ''}
-                    <div class="chat-msg-bubble">${escapeHtml(m.contenido)}</div>
-                    <div class="chat-msg-time">${formatearHora(m.created_at)}</div>
+                    ${!esMio ? `<div class="chat-msg-author">${nombreSeguro}</div>` : ''}
+                    <div class="chat-msg-bubble">${contenidoSeguro}</div>
+                    <div class="chat-msg-time">${horaSegura}</div>
                 </div>
             </div>
         `;
@@ -203,12 +230,6 @@ function renderizarMensajes(mensajes) {
 
     chatMessages.innerHTML = html;
     chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function escapeHtml(texto) {
-    const div = document.createElement('div');
-    div.textContent = texto;
-    return div.innerHTML;
 }
 
 
@@ -265,6 +286,8 @@ function iniciarPolling() {
         await cargarConversaciones();
     }, 10000);
 }
+
+
 // ============================================
 // MODAL: NUEVO CHAT DIRECTO
 // ============================================
@@ -282,7 +305,7 @@ async function abrirModalNuevoChat() {
         const data = await resp.json();
 
         if (!data.ok) {
-            chatSupervisoresList.innerHTML = `<li class="text-danger text-center py-3">Error: ${data.error}</li>`;
+            chatSupervisoresList.innerHTML = `<li class="text-danger text-center py-3">Error: ${escapeHtml(data.error)}</li>`;
             return;
         }
 
@@ -291,15 +314,21 @@ async function abrirModalNuevoChat() {
             return;
         }
 
-        chatSupervisoresList.innerHTML = data.supervisores.map(s => `
-            <li class="chat-supervisor-item" onclick="abrirChatDirecto(${s.id})">
-                <div class="chat-supervisor-avatar">${iniciales(s.nombre)}</div>
+        chatSupervisoresList.innerHTML = data.supervisores.map(s => {
+            const nombreSeguro = escapeHtml(s.nombre);
+            const sucursalSegura = escapeHtml(s.sucursal || 'Sin sucursal');
+            const inicialesSeguras = escapeHtml(iniciales(s.nombre));
+
+            return `
+            <li class="chat-supervisor-item" onclick="abrirChatDirecto(${Number(s.id)})">
+                <div class="chat-supervisor-avatar">${inicialesSeguras}</div>
                 <div>
-                    <div class="chat-supervisor-name">${s.nombre}</div>
-                    <div class="chat-supervisor-sucursal">${s.sucursal || 'Sin sucursal'}</div>
+                    <div class="chat-supervisor-name">${nombreSeguro}</div>
+                    <div class="chat-supervisor-sucursal">${sucursalSegura}</div>
                 </div>
             </li>
-        `).join('');
+            `;
+        }).join('');
     } catch (err) {
         console.error('Error:', err);
         chatSupervisoresList.innerHTML = '<li class="text-danger text-center py-3">Error de conexion</li>';

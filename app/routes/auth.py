@@ -1,12 +1,14 @@
 ﻿from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
-from app import db
+from app import db, limiter
 from app.models.user import User
 
 bp = Blueprint('auth', __name__)
 
 
 @bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("20 per minute", methods=["POST"])
+@limiter.limit("100 per hour", methods=["POST"])
 def login():
     """Inicio de sesion."""
     if current_user.is_authenticated:

@@ -71,12 +71,15 @@
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <button type="button" class="btn btn-sm btn-outline-info" title="Cambiar contraseña"
-                                onclick="abrirModalPassword({{ u.id }}, '{{ u.nombre|e }}')">
+                                data-user-id="{{ u.id }}" data-user-nombre="{{ u.nombre }}"
+                                onclick="abrirModalPasswordDesdeBoton(this)">
                                 <i class="bi bi-key"></i>
                             </button>
                             {% if u.id != current_user.id %}
                             <form method="POST" action="{{ url_for('admin.usuario_toggle_estado', user_id=u.id) }}"
-                                class="d-inline" onsubmit="return confirm('¿Cambiar estado de {{ u.nombre }}?')">
+                                class="d-inline" data-user-nombre="{{ u.nombre }}"
+                                onsubmit="return confirmarToggleUsuario(this)">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit"
                                     class="btn btn-sm btn-outline-{{ 'warning' if u.estado == 'Activo' else 'success' }}"
                                     title="{{ 'Desactivar' if u.estado == 'Activo' else 'Activar' }}">
@@ -145,6 +148,19 @@
         document.getElementById('modalPasswordError').style.display = 'none';
         document.getElementById('modalPassword').style.display = 'flex';
         setTimeout(() => document.getElementById('modalPasswordInput').focus(), 100);
+    }
+
+    // Wrapper seguro: lee los datos desde el botón (no desde un onclick inline)
+    function abrirModalPasswordDesdeBoton(boton) {
+        const userId = boton.dataset.userId;
+        const nombre = boton.dataset.userNombre || '—';
+        abrirModalPassword(userId, nombre);
+    }
+
+    // Confirmación segura para toggle de estado
+    function confirmarToggleUsuario(form) {
+        const nombre = form.dataset.userNombre || 'este usuario';
+        return confirm('¿Cambiar estado de ' + nombre + '?');
     }
 
     function cerrarModalPassword() {

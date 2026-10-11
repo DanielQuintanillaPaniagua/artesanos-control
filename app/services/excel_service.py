@@ -21,6 +21,26 @@ BORDER_THIN = Border(
 
 
 # ============================================================
+# SEGURIDAD: sanitizacion de celdas
+# ============================================================
+def _sanitizar_celda(valor):
+    """
+    Evita inyeccion de formulas en Excel.
+    Si el valor es string y empieza con =, +, -, @, tab o CR,
+    lo prefija con ' para que Excel lo trate como texto plano.
+
+    No modifica numeros, fechas ni None.
+    """
+    if valor is None:
+        return valor
+    if not isinstance(valor, str):
+        return valor
+    if valor and valor[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + valor
+    return valor
+
+
+# ============================================================
 # EXPORTAR FACTURAS A EXCEL (formato Artesanos)
 # ============================================================
 def exportar_facturas_excel(facturas, categorias):
@@ -48,20 +68,17 @@ def exportar_facturas_excel(facturas, categorias):
         cell.alignment = Alignment(horizontal='center', vertical='center')
         cell.border = BORDER_THIN
 
-    # ============ FILA 1: ESCRIBIR GRUPOS ANTES DE COMBINAR ============
+    # ============ FILA 1: ESCRIBIR GRUPOS (SIN MERGE) ============
+    # SEGURIDAD: no usamos merge_cells porque los grupos pueden tener
+    # columnas NO consecutivas (ej: Personal = O, P, S, T). El merge
+    # solaparia rangos y Excel pediria "reparar" el archivo.
+    # En su lugar, escribimos el nombre del grupo en cada celda de su grupo.
     for grupo, cols in grupos.items():
-        celda_principal = ws.cell(row=1, column=cols[0])
-        celda_principal.value = grupo
-        celda_principal.alignment = Alignment(horizontal='center', vertical='center')
-        celda_principal.font = Font(color="FFFFFF", bold=True, size=11)
-
-    # ============ FILA 1: COMBINAR DESPUES ============
-    for grupo, cols in grupos.items():
-        if len(cols) > 1:
-            try:
-                ws.merge_cells(start_row=1, start_column=cols[0], end_row=1, end_column=cols[-1])
-            except Exception:
-                pass
+        for col in cols:
+            celda = ws.cell(row=1, column=col)
+            celda.value = grupo
+            celda.alignment = Alignment(horizontal='center', vertical='center')
+            celda.font = Font(color="FFFFFF", bold=True, size=11)
 
     # ============ FILA 2: TIPO DE DOCUMENTO ============
     for col in range(1, total_col + 1):
@@ -96,13 +113,15 @@ def exportar_facturas_excel(facturas, categorias):
         celda_fecha.number_format = 'YYYY-MM-DD'
         celda_fecha.alignment = Alignment(horizontal='center', vertical='center')
 
-        ws.cell(row=row_idx, column=2, value=factura.tipo_documento or '').alignment = Alignment(horizontal='center', vertical='center')
+        celda_tipo = ws.cell(row=row_idx, column=2, value=_sanitizar_celda(factura.tipo_documento or ''))
+        celda_tipo.alignment = Alignment(horizontal='center', vertical='center')
 
         proveedor_nombre = factura.proveedor.nombre if factura.proveedor else ''
         detalle_completo = proveedor_nombre
         if factura.detalle:
             detalle_completo += f" - {factura.detalle}"
-        ws.cell(row=row_idx, column=3, value=detalle_completo)
+        # SEGURIDAD: sanitizar contra inyeccion de formulas
+        ws.cell(row=row_idx, column=3, value=_sanitizar_celda(detalle_completo))
 
         montos_por_cat = {d.categoria_id: d.monto for d in factura.detalles}
         total = 0
@@ -324,12 +343,12 @@ def exportar_usuarios_excel(usuarios):
 
     for row_idx, u in enumerate(usuarios, start=2):
         ws.cell(row=row_idx, column=1, value=u.id)
-        ws.cell(row=row_idx, column=2, value=u.nombre or '')
-        ws.cell(row=row_idx, column=3, value=u.usuario or '')
-        ws.cell(row=row_idx, column=4, value=u.email or '')
-        ws.cell(row=row_idx, column=5, value=u.rol or '')
-        ws.cell(row=row_idx, column=6, value=u.sucursal.nombre if u.sucursal else 'Todas')
-        ws.cell(row=row_idx, column=7, value=u.estado or '')
+        ws.cell(row=row_idx, column=2, value=_sanitizar_celda(u.nombre or ''))
+        ws.cell(row=row_idx, column=3, value=_sanitizar_celda(u.usuario or ''))
+        ws.cell(row=row_idx, column=4, value=_sanitizar_celda(u.email or ''))
+        ws.cell(row=row_idx, column=5, value=_sanitizar_celda(u.rol or ''))
+        ws.cell(row=row_idx, column=6, value=_sanitizar_celda(u.sucursal.nombre if u.sucursal else 'Todas'))
+        ws.cell(row=row_idx, column=7, value=_sanitizar_celda(u.estado or ''))
 
         for col in range(1, 8):
             ws.cell(row=row_idx, column=col).border = BORDER_THIN
@@ -368,10 +387,10 @@ def exportar_sucursales_excel(sucursales_data):
     for row_idx, item in enumerate(sucursales_data, start=2):
         s = item['obj']
         ws.cell(row=row_idx, column=1, value=s.id)
-        ws.cell(row=row_idx, column=2, value=s.nombre or '')
-        ws.cell(row=row_idx, column=3, value=s.direccion or '')
-        ws.cell(row=row_idx, column=4, value=s.telefono or '')
-        ws.cell(row=row_idx, column=5, value=s.estado or '')
+        ws.cell(row=row_idx, column=2, value=_sanitizar_celda(s.nombre or ''))
+        ws.cell(row=row_idx, column=3, value=_sanitizar_celda(s.direccion or ''))
+        ws.cell(row=row_idx, column=4, value=_sanitizar_celda(s.telefono or ''))
+        ws.cell(row=row_idx, column=5, value=_sanitizar_celda(s.estado or ''))
         ws.cell(row=row_idx, column=6, value=item.get('usuarios', 0))
         ws.cell(row=row_idx, column=7, value=item.get('facturas_mes', 0))
 

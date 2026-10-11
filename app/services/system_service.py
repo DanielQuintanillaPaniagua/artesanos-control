@@ -147,11 +147,9 @@ def create_backup():
     filepath = backup_dir / filename
 
     # Armar comando
+    # SEGURIDAD: NO pasar la password por linea de comandos (visible en ps).
+    # Se usa la variable de entorno MYSQL_PWD, que no aparece en ps.
     cmd = [mysqldump, f'-u{user}']
-
-    # SOLO agregar password si NO esta vacio
-    if password:
-        cmd.append(f'-p{password}')
 
     cmd.extend([
         '--no-tablespaces',
@@ -166,6 +164,11 @@ def create_backup():
 
     cmd.append(dbname)
 
+    # Preparar entorno con MYSQL_PWD (solo si hay password)
+    env = os.environ.copy()
+    if password:
+        env['MYSQL_PWD'] = password
+
     # Ejecutar
     try:
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -175,6 +178,7 @@ def create_backup():
                 stderr=subprocess.PIPE,
                 timeout=120,
                 text=True,
+                env=env,
             )
 
         if result.returncode != 0:

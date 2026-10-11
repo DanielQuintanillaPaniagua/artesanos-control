@@ -21,6 +21,19 @@ def _solo_owner_o_supervisor():
     if not (current_user.is_owner() or current_user.is_supervisor()):
         abort(403)
 
+def _filtrar_por_sucursal(query, modelo):
+    """
+    Aplica filtro por sucursal segun el rol del usuario actual.
+    - Owner: ve todo
+    - Supervisor: solo su sucursal
+    - Otros: query vacio (no ven nada)
+    """
+    if current_user.is_owner():
+        return query
+    if current_user.is_supervisor() and current_user.sucursal_id:
+        return query.filter(modelo.sucursal_id == current_user.sucursal_id)
+    return query.filter(modelo.sucursal_id == -1)
+
 
 # ==================================================
 # PANEL PRINCIPAL
@@ -33,19 +46,36 @@ def index():
     hoy = date.today()
     inicio_mes = hoy.replace(day=1)
 
-    usuarios_activos = User.query.filter_by(estado='Activo').count()
-    total_usuarios = User.query.count()
-    total_sucursales = Sucursal.query.count()
-    sucursales_activas = Sucursal.query.filter_by(estado='Activa').count()
+    usuarios_activos = _filtrar_por_sucursal(
+        User.query.filter_by(estado='Activo'), User
+    ).count()
+    total_usuarios = _filtrar_por_sucursal(User.query, User).count()
 
-    facturas_mes = Factura.query.filter(Factura.fecha >= inicio_mes).all()
+    if current_user.is_owner():
+        total_sucursales = Sucursal.query.count()
+        sucursales_activas = Sucursal.query.filter_by(estado='Activa').count()
+    else:
+        total_sucursales = 1
+        sucursales_activas = 1 if current_user.sucursal and current_user.sucursal.estado == 'Activa' else 0
+
+    facturas_mes = _filtrar_por_sucursal(
+        Factura.query.filter(Factura.fecha >= inicio_mes), Factura
+    ).all()
     total_facturas_mes = len(facturas_mes)
     total_observadas = sum(1 for f in facturas_mes if f.estado == 'Observada')
 
-    usuarios = User.query.order_by(User.id.desc()).limit(5).all()
+    usuarios = _filtrar_por_sucursal(
+        User.query.order_by(User.id.desc()), User
+    ).limit(5).all()
+
+    # Sucursales visibles segun rol
+    if current_user.is_owner():
+        sucursales_q = Sucursal.query.order_by(Sucursal.nombre).all()
+    else:
+        sucursales_q = [current_user.sucursal] if current_user.sucursal else []
 
     sucursales_data = []
-    for s in Sucursal.query.order_by(Sucursal.nombre).all():
+    for s in sucursales_q:
         facturas_suc = [f for f in facturas_mes if f.sucursal_id == s.id]
         sucursales_data.append({
             'obj': s,
@@ -443,6 +473,19 @@ def sucursal_toggle_estado(sucursal_id):
 # ==================================================
 # REPORTES CSV
 # ==================================================
+def _sanitizar_celda_csv(valor):
+    """
+    Evita inyeccion de formulas en Excel/CSV.
+    Si el valor empieza con =, +, -, @, tab o CR, lo prefija con '
+    para que Excel lo trate como texto.
+    """
+    if not isinstance(valor, str):
+        return valor
+    if valor and valor[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + valor
+    return valor
+
+
 def _csv_response(rows, headers, filename):
     """Genera una respuesta CSV descargable con BOM UTF-8 (compatible Excel)."""
     output = io.StringIO()
@@ -450,7 +493,7 @@ def _csv_response(rows, headers, filename):
     writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
     writer.writerow(headers)
     for row in rows:
-        writer.writerow(row)
+        writer.writerow([_sanitizar_celda_csv(v) for v in row])
 
     return Response(
         output.getvalue(),
@@ -466,6 +509,11 @@ def _csv_response(rows, headers, filename):
 def reportes():
     _solo_owner_o_supervisor()
     sucursales = Sucursal.query.order_by(Sucursal.nombre).all()
+
+    # Supervisor: solo su sucursal en el filtro
+    if current_user.is_supervisor():
+        sucursales = [s for s in sucursales if s.id == current_user.sucursal_id]
+
     return render_template('admin/reportes.html', sucursales=sucursales)
 
 
@@ -481,6 +529,9 @@ def reporte_facturas_csv():
 
     query = Factura.query
 
+    # SEGURIDAD: filtro por sucursal segun rol
+    query = _filtrar_por_sucursal(query, Factura)
+
     if desde_str:
         try:
             desde = datetime.strptime(desde_str, '%Y-%m-%d').date()
@@ -494,7 +545,9 @@ def reporte_facturas_csv():
         except ValueError:
             pass
     if sucursal_id:
-        query = query.filter(Factura.sucursal_id == sucursal_id)
+        # Solo permitir filtrar por sucursal si el user puede verla
+        if current_user.is_owner() or current_user.sucursal_id == sucursal_id:
+            query = query.filter(Factura.sucursal_id == sucursal_id)
     if estado:
         query = query.filter(Factura.estado == estado)
 
@@ -825,15 +878,29 @@ def importar_excel():
             flash('Debes seleccionar un archivo.', 'danger')
             return render_template('admin/importar.html', sucursales=sucursales)
 
+        # SEGURIDAD: validar nombre de archivo (evita ".." y caracteres raros)
+        nombre_archivo = (archivo.filename or '').strip()
+        if not nombre_archivo.lower().endswith(('.xlsx', '.xls')):
+            flash('El archivo debe ser Excel (.xlsx o .xls)', 'danger')
+            return render_template('admin/importar.html', sucursales=sucursales)
+
+        # SEGURIDAD: validar sucursal
         if not sucursal_id:
             flash('Debes elegir una sucursal.', 'danger')
             return render_template('admin/importar.html', sucursales=sucursales)
 
-        if not archivo.filename.lower().endswith(('.xlsx', '.xls')):
-            flash('El archivo debe ser Excel (.xlsx)', 'danger')
+        sucursal = db.session.get(Sucursal, sucursal_id)
+        if not sucursal:
+            flash('La sucursal seleccionada no existe.', 'danger')
+            return render_template('admin/importar.html', sucursales=sucursales)
+
+        if sucursal.estado != 'Activa':
+            flash(f'La sucursal "{sucursal.nombre}" esta inactiva. No se puede importar.', 'danger')
             return render_template('admin/importar.html', sucursales=sucursales)
 
         categorias = Categoria.query.filter_by(estado='Activa').all()
+
+        # Leer archivo (ya limitado a 5 MB por MAX_CONTENT_LENGTH)
         ok, data, resumen = importar_facturas_excel(
             archivo.stream, categorias, sucursal_id, current_user.id
         )
@@ -842,21 +909,38 @@ def importar_excel():
             flash(f'Error: {data}', 'danger')
             return render_template('admin/importar.html', sucursales=sucursales)
 
-        # Insertar facturas
+        # SEGURIDAD: chequear duplicados por fecha+detalle+total en la sucursal
+        # Si una factura con misma fecha, mismo detalle y mismo total ya existe,
+        # se saltea para evitar duplicar al reimportar.
         importadas = 0
+        salteadas = 0
         proveedores_creados = 0
 
         for f_data in data:
+            # Chequear duplicado
+            duplicada = Factura.query.filter(
+                Factura.sucursal_id == sucursal_id,
+                Factura.fecha == f_data['fecha'],
+                Factura.detalle == (f_data['detalle'] or '')[:200],
+                Factura.total_factura == f_data['total'],
+            ).first()
+
+            if duplicada:
+                salteadas += 1
+                continue
+
             # Buscar o crear proveedor
             proveedor = None
             if f_data['detalle']:
-                # Extraer nombre de proveedor (antes del primer guion)
                 nombre_prov = f_data['detalle'].split(' - ')[0].strip()[:150]
                 if nombre_prov:
                     proveedor = Proveedor.query.filter(
                         Proveedor.nombre.ilike(nombre_prov)
                     ).first()
                     if not proveedor:
+                        # Sanitizar nombre (evita formulas en Excel)
+                        if nombre_prov and nombre_prov[0] in ('=', '+', '-', '@', '\t', '\r'):
+                            nombre_prov = "'" + nombre_prov
                         proveedor = Proveedor(
                             nombre=nombre_prov,
                             estado='Activo',
@@ -890,17 +974,26 @@ def importar_excel():
 
             importadas += 1
 
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            flash('Error interno al importar. Verifica el archivo.', 'danger')
+            return render_template('admin/importar.html', sucursales=sucursales)
 
         resultado = {
             'importadas': importadas,
+            'salteadas': salteadas,
             'proveedores_creados': proveedores_creados,
             'total_filas': resumen.get('total_filas', 0),
             'sin_fecha': resumen.get('sin_fecha', 0),
             'sin_monto': resumen.get('sin_monto', 0),
         }
 
-        flash(f'{importadas} facturas importadas correctamente.', 'success')
+        msg = f'{importadas} facturas importadas correctamente.'
+        if salteadas > 0:
+            msg += f' {salteadas} salteadas por ya existir.'
+        flash(msg, 'success')
 
     return render_template('admin/importar.html', sucursales=sucursales, resultado=resultado)
 
