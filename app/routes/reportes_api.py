@@ -232,18 +232,33 @@ def sucursales():
 @bp.route('/resumen', methods=['GET'])
 @login_required
 def resumen():
-    """Resumen general: facturas, usuarios, sucursales, proveedores."""
+    """Resumen general: facturas, usuarios, sucursales, proveedores.
+
+    Supervisor y empleado ven SOLO su sucursal.
+    Owner ve todo.
+    """
     err = _solo_owner()
     if err: return err
 
     try:
         desde, hasta = _parse_fechas()
 
-        facturas = Factura.query.filter(
+        # SEGURIDAD: filtrar facturas por rol
+        facturas_q = Factura.query.filter(
             Factura.fecha >= desde,
             Factura.fecha <= hasta,
-        ).all()
+        )
+        usuarios_q = User.query
+        sucursales_q = Sucursal.query
+        proveedores_q = Proveedor.query
 
+        # Supervisor: solo su sucursal
+        if current_user.is_supervisor():
+            facturas_q = facturas_q.filter(Factura.sucursal_id == current_user.sucursal_id)
+            usuarios_q = usuarios_q.filter(User.sucursal_id == current_user.sucursal_id)
+            sucursales_q = sucursales_q.filter(Sucursal.id == current_user.sucursal_id)
+
+        facturas = facturas_q.all()
         total_monto = sum((f.total_factura or 0) for f in facturas)
 
         return jsonify({
@@ -254,12 +269,12 @@ def resumen():
                 'monto_total': round(total_monto, 2),
                 'validadas': sum(1 for f in facturas if f.estado == 'Validada'),
                 'observadas': sum(1 for f in facturas if f.estado == 'Observada'),
-                'total_usuarios': User.query.count(),
-                'usuarios_activos': User.query.filter_by(estado='Activo').count(),
-                'total_sucursales': Sucursal.query.count(),
-                'sucursales_activas': Sucursal.query.filter_by(estado='Activa').count(),
-                'total_proveedores': Proveedor.query.count(),
-                'proveedores_activos': Proveedor.query.filter_by(estado='Activo').count(),
+                'total_usuarios': usuarios_q.count(),
+                'usuarios_activos': usuarios_q.filter(User.estado == 'Activo').count(),
+                'total_sucursales': sucursales_q.count(),
+                'sucursales_activas': sucursales_q.filter(Sucursal.estado == 'Activa').count(),
+                'total_proveedores': proveedores_q.count(),
+                'proveedores_activos': proveedores_q.filter(Proveedor.estado == 'Activo').count(),
                 'total_categorias': Categoria.query.count(),
                 'categorias_activas': Categoria.query.filter_by(estado='Activa').count(),
             },

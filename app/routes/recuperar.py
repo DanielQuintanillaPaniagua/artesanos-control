@@ -1,7 +1,7 @@
 ﻿from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from datetime import datetime, timezone
 
-from app import db
+from app import db, limiter
 from app.models.user import User, PasswordResetToken
 from app.services.email_service import enviar_email_recuperacion
 
@@ -13,6 +13,8 @@ bp = Blueprint('recuperar', __name__, url_prefix='/recuperar')
 # PASO 1: Solicitar recuperacion (ingresa email)
 # ============================================================
 @bp.route('/', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", methods=["POST"])
+@limiter.limit("20 per hour", methods=["POST"])
 def solicitar():
     if request.method == 'POST':
         email = (request.form.get('email') or '').strip().lower()

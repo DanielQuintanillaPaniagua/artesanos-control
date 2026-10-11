@@ -42,6 +42,17 @@ function eliminarDeLaCola(idLocal) {
     return cola.length;
 }
 
+function marcarConError(idLocal, mensajeError) {
+    /** Marca una factura de la cola como rechazada, para no borrarla. */
+    const cola = obtenerCola();
+    const idx = cola.findIndex(f => f._id_local === idLocal);
+    if (idx >= 0) {
+        cola[idx]._error = mensajeError;
+        cola[idx]._error_fecha = new Date().toISOString();
+        guardarCola(cola);
+    }
+}
+
 
 // DETECCION DE CONEXION
 function hayConexion() {
@@ -103,8 +114,19 @@ function actualizarBadgeBanner() {
         return;
     }
 
+    // Contar las que tienen error
+    const conError = cola.filter(f => f._error).length;
+
     if (hayConexion()) {
-        mostrarBanner(`Sincronizando ${cola.length} factura(s)...`, 'sincronizando', cola.length);
+        if (conError > 0) {
+            mostrarBanner(
+                `${conError} factura(s) rechazada(s) por el servidor - Requiere atencion`,
+                'offline',
+                cola.length
+            );
+        } else {
+            mostrarBanner(`Sincronizando ${cola.length} factura(s)...`, 'sincronizando', cola.length);
+        }
     } else {
         mostrarBanner(`Sin conexion - ${cola.length} factura(s) en cola`, 'offline', cola.length);
     }
@@ -148,9 +170,10 @@ async function sincronizarCola() {
                 eliminarDeLaCola(factura._id_local);
                 enviadas++;
             } else {
-                // Error del servidor (ej: duplicada) → sacar de la cola y avisar
+                // SEGURIDAD: NO borrar la factura rechazada.
+                // Marcarla con _error para que el usuario la vea y decida.
                 console.warn('Factura rechazada:', data.error);
-                eliminarDeLaCola(factura._id_local);
+                marcarConError(factura._id_local, data.error || 'Rechazada por el servidor');
                 fallidas++;
             }
         } catch (err) {

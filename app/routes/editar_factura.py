@@ -76,6 +76,8 @@ def guardar_correccion(factura_id):
         return jsonify(error="Solo puedes editar facturas de tu sucursal"), 403
     datos = request.get_json(silent=True) or {}
 
+    MAX_MONTO = Decimal("1000000000000")  # 1 billon
+
     try:
         total = Decimal(str(datos["total_factura"]))
         detalle = [
@@ -87,8 +89,13 @@ def guardar_correccion(factura_id):
     except (KeyError, ValueError, InvalidOperation, TypeError):
         return jsonify(error="Datos invalidos"), 400
 
-    if any(m < 0 for _, m in detalle):
-        return jsonify(error="Los montos por categoria no pueden ser negativos"), 400
+    # SEGURIDAD: validar que los numeros sean finitos y esten en rango
+    if not total.is_finite() or total <= 0 or total > MAX_MONTO:
+        return jsonify(error="El total no es valido"), 400
+
+    for c, m in detalle:
+        if not m.is_finite() or m < 0 or m > MAX_MONTO:
+            return jsonify(error=f"Monto invalido para categoria {c}"), 400
 
     motivo = (datos.get("motivo") or "").strip()
     if len(motivo) < 5:

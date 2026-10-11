@@ -776,8 +776,10 @@ def reporte_facturas_excel():
     hasta_str = (request.args.get('hasta') or '').strip()
     sucursal_id = request.args.get('sucursal', type=int)
     estado = (request.args.get('estado') or '').strip()
-
     query = Factura.query
+
+    # SEGURIDAD: filtro por sucursal segun rol
+    query = _filtrar_por_sucursal(query, Factura)
 
     if desde_str:
         try:
@@ -792,7 +794,9 @@ def reporte_facturas_excel():
         except ValueError:
             pass
     if sucursal_id:
-        query = query.filter(Factura.sucursal_id == sucursal_id)
+        # Solo permitir filtrar por sucursal si el user puede verla
+        if current_user.is_owner() or current_user.sucursal_id == sucursal_id:
+            query = query.filter(Factura.sucursal_id == sucursal_id)
     if estado:
         query = query.filter(Factura.estado == estado)
 

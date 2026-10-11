@@ -52,12 +52,16 @@
                 <select id="proveedor_id" class="form-control">
                     <option value="">-- Selecciona un proveedor --</option>
                 </select>
+                {% if current_user.is_owner() or current_user.is_supervisor() %}
                 <button type="button" class="btn-add-proveedor" id="btn-nuevo-proveedor" onclick="abrirModalProveedor()"
                     title="Nuevo proveedor">
                     <i class="bi bi-plus-lg"></i>
                 </button>
+                {% endif %}
             </div>
+            {% if current_user.is_owner() or current_user.is_supervisor() %}
             <small>Si el proveedor no esta en la lista, agregalo con el boton +</small>
+            {% endif %}
         </div>
         <div class="form-group">
             <label>Numero de factura *</label>
