@@ -31,7 +31,13 @@ def solicitar():
             token = PasswordResetToken.generar(user.id)
 
             # Armar link completo
-            link = url_for('recuperar.cambiar_con_token', token=token.token, _external=True)
+            scheme = 'http' if current_app.debug else 'https'
+            link = url_for(
+                'recuperar.cambiar_con_token',
+                token=token.token,
+                _external=True,
+                _scheme=scheme,
+            )
 
             # Enviar email (no bloquear si falla)
             ok, error = enviar_email_recuperacion(user.email, user.nombre, link)

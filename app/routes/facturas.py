@@ -1,6 +1,7 @@
 ﻿from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, date
+from sqlalchemy.exc import IntegrityError
 from app import db
 from app.models.factura import Factura
 from app.models.detalle_factura import DetalleFactura
@@ -8,11 +9,15 @@ from app.models.proveedor import Proveedor
 from app.models.categoria import Categoria
 from app.services.validacion import validar_factura
 import math
+
 bp = Blueprint('facturas', __name__, url_prefix='/api/facturas')
 
+
+# ============================================================
+# HELPERS
+# ============================================================
 def _parsear_numero(valor, nombre='valor'):
     """Convierte un valor a float de forma segura.
-    
     Devuelve (float, None) si es valido, o (None, mensaje_error) si no.
     """
     if valor is None:
@@ -21,14 +26,28 @@ def _parsear_numero(valor, nombre='valor'):
         numero = float(valor)
     except (ValueError, TypeError):
         return None, f'{nombre} debe ser un numero valido'
-    
+
     if not math.isfinite(numero):
         return None, f'{nombre} debe ser un numero finito'
-    
+
     return numero, None
 
+
+def _parsear_fecha(fecha_str):
+    """
+    Devuelve (date, None) si es valida, o (None, error) si no.
+    Acepta None -> hoy.
+    """
+    if not fecha_str:
+        return date.today(), None
+    try:
+        return datetime.strptime(fecha_str, '%Y-%m-%d').date(), None
+    except (ValueError, TypeError):
+        return None, 'La fecha no es valida (formato esperado: YYYY-MM-DD)'
+
+
 def _sucursal_activa(user):
-    """Verifica que el usuario tenga sucursal activa."""
+    """Verifica que el usuario tenga sucursal activa para facturar."""
     if not (user.is_empleado() or user.is_supervisor()):
         return False, 'Solo los empleados y supervisores pueden registrar facturas'
     if not user.sucursal_id:
@@ -38,11 +57,22 @@ def _sucursal_activa(user):
     return True, None
 
 
+def _sanitizar_nombre(nombre):
+    """Evita inyeccion de formulas en Excel/CSV."""
+    if not nombre:
+        return nombre
+    if nombre[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + nombre
+    return nombre
+
+
+# ============================================================
+# GET /api/facturas/
+# ============================================================
 @bp.route('/', methods=['GET'])
 @login_required
 def list_facturas():
     query = Factura.query
-    # Todos los que NO son owner ven solo su sucursal (empleado + supervisor)
     if not current_user.is_owner():
         query = query.filter_by(sucursal_id=current_user.sucursal_id)
 
@@ -54,27 +84,35 @@ def list_facturas():
     })
 
 
+# ============================================================
+# GET /api/facturas/<id>
+# ============================================================
 @bp.route('/<int:id>', methods=['GET'])
 @login_required
 def get_factura(id):
-    factura = Factura.query.get(id)
+    factura = db.session.get(Factura, id)
     if not factura:
         return jsonify({'success': False, 'error': 'Factura no encontrada'}), 404
-    # Todos los que NO son owner solo pueden ver facturas de su sucursal
+
     if not current_user.is_owner() and factura.sucursal_id != current_user.sucursal_id:
         return jsonify({'success': False, 'error': 'Sin permisos'}), 403
+
     return jsonify({'success': True, 'factura': factura.to_dict()})
 
 
+# ============================================================
+# POST /api/facturas/
+# Crear factura
+# ============================================================
 @bp.route('/', methods=['POST'])
 @login_required
 def create_factura():
-    # === BLOQUEO: empleado con sucursal activa ===
+    # 1. Bloquear: empleado con sucursal activa
     ok, error = _sucursal_activa(current_user)
     if not ok:
         return jsonify({'success': False, 'error': error}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({'success': False, 'error': 'No se enviaron datos'}), 400
 
@@ -83,112 +121,190 @@ def create_factura():
     fecha_str = data.get('fecha')
     tipo_documento = (data.get('tipo_documento') or '').strip()
     detalle = (data.get('detalle') or '').strip()
-    total_factura, err = _parsear_numero(data.get('total_factura'), 'El total')
-    if err:
-        return jsonify({'success': False, 'error': err}), 400
     detalles = data.get('detalles', [])
 
-    # 1. Validar campos requeridos
+    # 2. Validar numero de factura
     if not numero:
         return jsonify({'success': False, 'error': 'Numero de factura obligatorio'}), 400
 
-    if not detalles:
+    # 3. Validar detalles
+    if not isinstance(detalles, list) or not detalles:
         return jsonify({'success': False, 'error': 'Debes ingresar al menos una categoria'}), 400
 
-    # 2. Validar que los montos sean positivos
-    for d in detalles:
-        monto, err = _parsear_numero(d.get('monto'), 'El monto')
+    # 4. Validar total
+    total_factura, err = _parsear_numero(data.get('total_factura'), 'El total')
+    if err:
+        return jsonify({'success': False, 'error': err}), 400
+    if total_factura <= 0:
+        return jsonify({'success': False, 'error': 'El total de la factura debe ser mayor a cero'}), 400
+
+    # 5. Validar fecha (NO reemplazar por hoy silenciosamente)
+    fecha, err = _parsear_fecha(fecha_str)
+    if err:
+        return jsonify({'success': False, 'error': err}), 400
+
+    # 6. Validar proveedor_id (opcional, pero si viene debe existir)
+    if proveedor_id is not None and proveedor_id != '':
+        try:
+            proveedor_id = int(proveedor_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'proveedor_id invalido'}), 400
+        if not db.session.get(Proveedor, proveedor_id):
+            return jsonify({'success': False, 'error': 'El proveedor no existe'}), 400
+    else:
+        proveedor_id = None
+
+    # 7. Validar cada detalle: monto + categoria_id
+    categorias_validas = {c.id for c in Categoria.query.filter_by(estado='Activa').all()}
+    detalles_limpios = []
+    for i, d in enumerate(detalles):
+        if not isinstance(d, dict):
+            return jsonify({'success': False, 'error': f'Detalle {i+1}: formato invalido'}), 400
+
+        monto, err = _parsear_numero(d.get('monto'), f'El monto del detalle {i+1}')
         if err:
             return jsonify({'success': False, 'error': err}), 400
         if monto < 0:
-            return jsonify({
-                'success': False,
-                'error': 'El monto de una categoria no puede ser negativo'
-            }), 400
+            return jsonify({'success': False, 'error': f'Detalle {i+1}: el monto no puede ser negativo'}), 400
 
-    # 3. Validar el total
-    if total_factura <= 0:
-        return jsonify({
-            'success': False,
-            'error': 'El total de la factura debe ser mayor a cero'
-        }), 400
+        cat_id = d.get('categoria_id')
+        try:
+            cat_id = int(cat_id)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': f'Detalle {i+1}: categoria_id invalido'}), 400
 
-        # 4. Validar la suma
-    suma_detalles = sum(
-        _parsear_numero(d.get('monto'))[0] or 0
-        for d in detalles
-    )
-    if suma_detalles > total_factura + 0.01:
-        return jsonify({
-            'success': False,
-            'error': f'La suma de categorias (${suma_detalles:.2f}) supera el total de la factura (${total_factura:.2f})'
-        }), 400
+        if cat_id not in categorias_validas:
+            return jsonify({'success': False, 'error': f'Detalle {i+1}: la categoria no existe o esta inactiva'}), 400
 
-    # 5. Validar cuadre (ANTES de usarla)
-    es_valida, mensaje, _ = validar_factura(detalles, total_factura)
+        if monto > 0:
+            detalles_limpios.append({'categoria_id': cat_id, 'monto': monto})
 
-    # 6. REGLA: empleados NO pueden guardar facturas descuadradas
+    if not detalles_limpios:
+        return jsonify({'success': False, 'error': 'Debes ingresar al menos un monto mayor a 0'}), 400
+
+    # 8. Validar cuadre (usando la funcion robusta)
+    es_valida, mensaje, _ = validar_factura(detalles_limpios, total_factura, categorias_validas=categorias_validas)
+
+    # 9. Empleados no pueden guardar descuadres
     if not es_valida and current_user.is_empleado():
+        suma = sum(d['monto'] for d in detalles_limpios)
         return jsonify({
             'success': False,
-            'error': f'El desglose no cuadra con el total. Diferencia: ${total_factura - suma_detalles:.2f}. Contacta a tu supervisor.',
+            'error': f'El desglose no cuadra con el total. Diferencia: ${abs(total_factura - suma):.2f}. Contacta a tu supervisor.',
             'requiere_revision': True
         }), 400
 
-    estado = 'Validada' if es_valida else 'Observada'
-    try:
-        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date() if fecha_str else date.today()
-    except ValueError:
-        fecha = date.today()
-
+    # 10. Chequear duplicados: mismo numero_factura + misma sucursal
     sucursal_id = current_user.sucursal_id
+    duplicado = Factura.query.filter_by(
+        numero_factura=numero,
+        sucursal_id=sucursal_id,
+    ).first()
+    if duplicado:
+        return jsonify({
+            'success': False,
+            'error': f'Ya existe una factura con el numero "{numero}" en tu sucursal (ID #{duplicado.id}).'
+        }), 409
 
-    factura = Factura(
-        numero_factura=numero, fecha=fecha, tipo_documento=tipo_documento,
-        detalle=detalle, total_factura=total_factura, proveedor_id=proveedor_id,
-        sucursal_id=sucursal_id, usuario_id=current_user.id,
-        estado=estado, observacion=None if es_valida else mensaje
-    )
-    db.session.add(factura)
-    db.session.flush()
+    # 11. Crear factura
+    estado = 'Validada' if es_valida else 'Observada'
 
-    for d in detalles:
-        monto = float(d.get('monto', 0))
-        if monto > 0:
+    try:
+        factura = Factura(
+            numero_factura=numero,
+            fecha=fecha,
+            tipo_documento=tipo_documento,
+            detalle=detalle,
+            total_factura=total_factura,
+            proveedor_id=proveedor_id,
+            sucursal_id=sucursal_id,
+            usuario_id=current_user.id,
+            estado=estado,
+            observacion=None if es_valida else mensaje,
+        )
+        db.session.add(factura)
+        db.session.flush()
+
+        for d in detalles_limpios:
             db.session.add(DetalleFactura(
                 factura_id=factura.id,
-                categoria_id=d.get('categoria_id'),
-                monto=monto
+                categoria_id=d['categoria_id'],
+                monto=d['monto'],
             ))
 
-    db.session.commit()
+        db.session.commit()
+
+    except IntegrityError as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Error de integridad: algun dato no existe o esta duplicado.',
+        }), 400
+    except Exception:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Error interno al guardar la factura.',
+        }), 500
 
     return jsonify({
-        'success': True, 'message': mensaje,
-        'es_valida': es_valida, 'factura': factura.to_dict()
+        'success': True,
+        'message': mensaje,
+        'es_valida': es_valida,
+        'factura': factura.to_dict(),
     }), 201
 
 
+# ============================================================
+# DELETE /api/facturas/<id>
+# Solo owner
+# ============================================================
 @bp.route('/<int:id>', methods=['DELETE'])
 @login_required
 def delete_factura(id):
-    # Solo el owner puede eliminar facturas
     if not current_user.is_owner():
         return jsonify({
             'success': False,
             'error': 'Solo el administrador puede eliminar facturas.'
         }), 403
 
-    factura = Factura.query.get(id)
+    factura = db.session.get(Factura, id)
     if not factura:
         return jsonify({'success': False, 'error': 'Factura no encontrada'}), 404
 
-    db.session.delete(factura)
-    db.session.commit()
+    try:
+        # Borrar primero los detalles y el historial (por si no hay FK con CASCADE)
+        DetalleFactura.query.filter_by(factura_id=factura.id).delete(synchronize_session=False)
+
+        # Intentar importar HistorialCorreccion (si existe)
+        try:
+            from app.models.historial_correccion import HistorialCorreccion
+            HistorialCorreccion.query.filter_by(factura_id=factura.id).delete(synchronize_session=False)
+        except ImportError:
+            pass
+
+        db.session.delete(factura)
+        db.session.commit()
+
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'No se puede eliminar: tiene registros asociados (historial de correcciones).'
+        }), 400
+    except Exception:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Error interno al eliminar la factura.'
+        }), 500
+
     return jsonify({'success': True, 'message': 'Factura eliminada'})
 
-# DATOS AUXILIARES PARA EL FORMULARIO
 
+# ============================================================
+# GET /api/facturas/categorias
+# ============================================================
 @bp.route('/categorias', methods=['GET'])
 @login_required
 def list_categorias():
@@ -199,6 +315,9 @@ def list_categorias():
     })
 
 
+# ============================================================
+# GET /api/facturas/proveedores
+# ============================================================
 @bp.route('/proveedores', methods=['GET'])
 @login_required
 def list_proveedores():
@@ -209,25 +328,34 @@ def list_proveedores():
     })
 
 
+# ============================================================
+# POST /api/facturas/proveedores
+# Crear proveedor desde el form de facturas
+# (owner + supervisor; empleado NO)
+# ============================================================
 @bp.route('/proveedores', methods=['POST'])
 @login_required
 def create_proveedor():
-    """Crea un proveedor nuevo desde el formulario de facturas."""
-    # === BLOQUEO: empleado con sucursal activa ===
-    ok, error = _sucursal_activa(current_user)
-    if not ok:
-        return jsonify({'success': False, 'error': error}), 403
+    # Bloquear a empleados
+    if not (current_user.is_owner() or current_user.is_supervisor()):
+        return jsonify({
+            'success': False,
+            'error': 'Solo el administrador o supervisor pueden crear proveedores.'
+        }), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({'success': False, 'error': 'No se enviaron datos'}), 400
 
     nombre = (data.get('nombre') or '').strip()
-    telefono = (data.get('telefono') or '').strip()
-    email = (data.get('email') or '').strip()
+    telefono = (data.get('telefono') or '').strip() or None
+    email = (data.get('email') or '').strip() or None
 
     if not nombre:
         return jsonify({'success': False, 'error': 'El nombre es obligatorio'}), 400
+
+    # Sanitizar nombre (evita formulas en Excel)
+    nombre = _sanitizar_nombre(nombre)
 
     existente = Proveedor.query.filter(
         Proveedor.nombre.ilike(nombre)
@@ -239,14 +367,21 @@ def create_proveedor():
             'proveedor': existente.to_dict()
         }), 409
 
-    proveedor = Proveedor(
-        nombre=nombre,
-        telefono=telefono or None,
-        email=email or None,
-        estado='Activo'
-    )
-    db.session.add(proveedor)
-    db.session.commit()
+    try:
+        proveedor = Proveedor(
+            nombre=nombre,
+            telefono=telefono,
+            email=email,
+            estado='Activo'
+        )
+        db.session.add(proveedor)
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Error de integridad al crear proveedor.'}), 400
+    except Exception:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Error interno al crear proveedor.'}), 500
 
     return jsonify({
         'success': True,

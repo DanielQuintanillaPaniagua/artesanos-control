@@ -36,12 +36,10 @@ def _recopilar_contexto(sucursal_id=None):
     hoy = date.today()
     inicio_mes = hoy.replace(day=1)
 
-    # Query base (filtrable por sucursal)
     base = Factura.query
     if sucursal_id:
         base = base.filter(Factura.sucursal_id == sucursal_id)
 
-    # --- Totales generales ---
     total_facturas = base.count()
     facturas_mes = base.filter(Factura.fecha >= inicio_mes).all()
     total_facturas_mes = len(facturas_mes)
@@ -50,14 +48,11 @@ def _recopilar_contexto(sucursal_id=None):
     validadas_mes = sum(1 for f in facturas_mes if f.estado == 'Validada')
     observadas_mes = sum(1 for f in facturas_mes if f.estado == 'Observada')
 
-    # --- Sucursales y usuarios ---
     if sucursal_id:
-        # Supervisor: solo su sucursal
         total_sucursales = 1
         total_usuarios = User.query.filter_by(estado='Activo', sucursal_id=sucursal_id).count()
         total_proveedores = Proveedor.query.filter_by(estado='Activo').count()
     else:
-        # Owner: ve todo
         total_sucursales = Sucursal.query.filter_by(estado='Activa').count()
         total_usuarios = User.query.filter_by(estado='Activo').count()
         total_proveedores = Proveedor.query.filter_by(estado='Activo').count()
@@ -65,10 +60,8 @@ def _recopilar_contexto(sucursal_id=None):
     # --- Desglose por sucursal (ultimo mes) ---
     sucursales_info = []
     if sucursal_id:
-        # Supervisor: solo su sucursal
         sucursales_query = Sucursal.query.filter_by(id=sucursal_id).all()
     else:
-        # Owner: todas
         sucursales_query = Sucursal.query.order_by(Sucursal.nombre).all()
 
     for s in sucursales_query:
@@ -104,7 +97,7 @@ def _recopilar_contexto(sucursal_id=None):
 
     cats_info = []
     for cid, monto in sorted(categorias_mes.items(), key=lambda x: x[1], reverse=True)[:10]:
-        cat = Categoria.query.get(cid)
+        cat = db.session.get(Categoria, cid)
         if cat:
             cats_info.append(f"  - {cat.nombre}: ${monto:.2f}")
     categorias_txt = "\n".join(cats_info) or "  - Sin datos"
@@ -200,9 +193,13 @@ RESPUESTA:"""
         }
 
     except ValueError as e:
+        # ValueError: tipicamente "GEMINI_API_KEY no configurada". Seguro de mostrar.
         return {'ok': False, 'error': str(e)}
-    except Exception as e:
+    except Exception:
+        # Cualquier otro error: NO filtrar detalles al cliente.
+        import logging
+        logging.getLogger(__name__).exception("Error en Artesanos AI")
         return {
             'ok': False,
-            'error': f"Lo siento, tuve un problema al procesar tu consulta: {str(e)}"
+            'error': "Lo siento, tuve un problema al procesar tu consulta. Intenta de nuevo en unos minutos."
         }

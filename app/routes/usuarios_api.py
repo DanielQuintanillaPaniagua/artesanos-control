@@ -12,11 +12,80 @@ bp = Blueprint('usuarios_api', __name__, url_prefix='/api/usuarios')
 # ============================================================
 # HELPERS
 # ============================================================
-def _solo_owner():
-    """Owner o supervisor pueden gestionar usuarios."""
+def _puede_gestionar_usuarios():
+    """
+    Owner o supervisor pueden gestionar usuarios.
+    Devuelve None si OK, o (jsonify, status) si hay error.
+    """
     if not (current_user.is_owner() or current_user.is_supervisor()):
-        return jsonify({'success': False, 'error': 'Solo el administrador o supervisor pueden acceder'}), 403
+        return jsonify({
+            'success': False,
+            'error': 'Solo el administrador o supervisor pueden acceder'
+        }), 403
     return None
+
+
+def _puede_tocar(target):
+    """
+    Valida si el usuario actual puede gestionar al usuario `target`.
+
+    Reglas:
+      - Owner: puede tocar a cualquiera EXCEPTO a sí mismo en ciertos casos
+        (cambio de rol/estado de sí mismo se valida aparte).
+      - Supervisor: solo usuarios de SU MISMA sucursal y que NO sean owner.
+    Devuelve None si OK, o (jsonify, status) si hay error.
+    """
+    if current_user.is_owner():
+        return None
+
+    # Supervisor
+    if current_user.is_supervisor():
+        if target.is_owner():
+            return jsonify({
+                'success': False,
+                'error': 'Un supervisor no puede gestionar a un administrador'
+            }), 403
+        if target.sucursal_id != current_user.sucursal_id:
+            return jsonify({
+                'success': False,
+                'error': 'Solo podes gestionar usuarios de tu sucursal'
+            }), 403
+        return None
+
+    # Empleado u otro rol
+    return jsonify({
+        'success': False,
+        'error': 'No tenes permiso para gestionar usuarios'
+    }), 403
+
+
+def _validar_target_para_supervisor(rol, sucursal_id, target=None):
+    """
+    Valida reglas específicas cuando el current_user es supervisor.
+
+    - No puede crear ni promover a 'owner'.
+    - No puede mover usuarios a otra sucursal.
+    - Si target es él mismo, no puede cambiarse el rol.
+
+    Devuelve lista de errores (strings).
+    """
+    errores = []
+    if not current_user.is_supervisor():
+        return errores
+
+    if rol == 'owner':
+        errores.append('Un supervisor no puede crear ni promover administradores.')
+
+    # Forzar sucursal propia (por si mandan otra)
+    if sucursal_id and sucursal_id != current_user.sucursal_id:
+        errores.append('Solo podes asignar usuarios a tu propia sucursal.')
+
+    # No puede cambiarse su propio rol
+    if target is not None and target.id == current_user.id:
+        if rol != current_user.rol:
+            errores.append('No podes cambiar tu propio rol.')
+
+    return errores
 
 
 def _serializar(u):
@@ -35,12 +104,12 @@ def _serializar(u):
 
 # ============================================================
 # GET /api/usuarios/
-# Listar todos los usuarios
+# Listar usuarios
 # ============================================================
 @bp.route('/', methods=['GET'])
 @login_required
 def listar():
-    err = _solo_owner()
+    err = _puede_gestionar_usuarios()
     if err: return err
 
     try:
@@ -50,9 +119,12 @@ def listar():
 
         query = User.query
 
-        # Supervisor solo ve usuarios de su sucursal
+        # Supervisor: solo su sucursal
         if current_user.is_supervisor():
             query = query.filter(User.sucursal_id == current_user.sucursal_id)
+            # Supervisor tampoco puede ver owners (no están en su sucursal de todas formas,
+            # pero por si acaso owner tuviera sucursal asignada)
+            query = query.filter(User.rol != 'owner')
 
         if rol:
             query = query.filter(User.rol == rol)
@@ -68,7 +140,7 @@ def listar():
             'total': len(usuarios),
             'usuarios': [_serializar(u) for u in usuarios],
         })
-    except Exception as e:
+    except Exception:
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
@@ -80,12 +152,15 @@ def listar():
 @bp.route('/<int:user_id>', methods=['GET'])
 @login_required
 def ver(user_id):
-    err = _solo_owner()
+    err = _puede_gestionar_usuarios()
     if err: return err
 
-    u = User.query.get(user_id)
+    u = db.session.get(User, user_id)
     if not u:
         return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
+
+    err = _puede_tocar(u)
+    if err: return err
 
     return jsonify({'success': True, 'usuario': _serializar(u)})
 
@@ -97,7 +172,7 @@ def ver(user_id):
 @bp.route('/', methods=['POST'])
 @login_required
 def crear():
-    err = _solo_owner()
+    err = _puede_gestionar_usuarios()
     if err: return err
 
     data = request.get_json(silent=True) or {}
@@ -109,7 +184,10 @@ def crear():
     sucursal_id = data.get('sucursal_id')
     password = data.get('password') or ''
 
-    # Validaciones
+    # Si es supervisor, forzar su propia sucursal
+    if current_user.is_supervisor():
+        sucursal_id = current_user.sucursal_id
+
     errores = []
     if not nombre or len(nombre) < 3:
         errores.append('El nombre debe tener al menos 3 caracteres')
@@ -125,8 +203,11 @@ def crear():
         errores.append('Rol invalido')
     if rol in ('empleado', 'supervisor') and not sucursal_id:
         errores.append('Los empleados y supervisores deben tener una sucursal asignada.')
-    if sucursal_id and not Sucursal.query.get(sucursal_id):
-        errores.append('La sucursal seleccionada no existe.')   
+    if sucursal_id and not db.session.get(Sucursal, sucursal_id):
+        errores.append('La sucursal seleccionada no existe.')
+
+    # Reglas específicas de supervisor
+    errores.extend(_validar_target_para_supervisor(rol, sucursal_id, target=None))
 
     if errores:
         return jsonify({'success': False, 'errores': errores}), 400
@@ -149,7 +230,7 @@ def crear():
             'message': f'Usuario "{u.nombre}" creado',
             'usuario': _serializar(u),
         }), 201
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
@@ -162,12 +243,15 @@ def crear():
 @bp.route('/<int:user_id>', methods=['PUT'])
 @login_required
 def actualizar(user_id):
-    err = _solo_owner()
+    err = _puede_gestionar_usuarios()
     if err: return err
 
-    u = User.query.get(user_id)
+    u = db.session.get(User, user_id)
     if not u:
         return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
+
+    err = _puede_tocar(u)
+    if err: return err
 
     data = request.get_json(silent=True) or {}
 
@@ -178,6 +262,10 @@ def actualizar(user_id):
     sucursal_id = data.get('sucursal_id')
     password = (data.get('password') or '').strip()
     estado = data.get('estado') or u.estado
+
+    # Supervisor: forzar su sucursal
+    if current_user.is_supervisor():
+        sucursal_id = current_user.sucursal_id
 
     errores = []
     if not nombre or len(nombre) < 3:
@@ -194,14 +282,23 @@ def actualizar(user_id):
         if existe_email:
             errores.append(f'El email "{email}" ya esta en uso')
 
-    if rol not in ('owner','supervisor','empleado'):
+    if rol not in ('owner', 'supervisor', 'empleado'):
         errores.append('Rol invalido')
     if rol in ('empleado', 'supervisor') and not sucursal_id:
         errores.append('Los empleados y supervisores deben tener una sucursal asignada.')
     if password and len(password) < 6:
         errores.append('La contrasena debe tener al menos 6 caracteres')
+
+    # Nadie puede desactivarse a sí mismo
     if u.id == current_user.id and estado != 'Activo':
         errores.append('No puedes desactivar tu propio usuario')
+
+    # Reglas específicas de supervisor
+    errores.extend(_validar_target_para_supervisor(rol, sucursal_id, target=u))
+
+    # Nadie (excepto owner) puede cambiar su propio rol
+    if u.id == current_user.id and rol != u.rol and not current_user.is_owner():
+        errores.append('No podes cambiar tu propio rol.')
 
     if errores:
         return jsonify({'success': False, 'errores': errores}), 400
@@ -223,7 +320,7 @@ def actualizar(user_id):
             'message': f'Usuario "{u.nombre}" actualizado',
             'usuario': _serializar(u),
         })
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
@@ -231,17 +328,20 @@ def actualizar(user_id):
 
 # ============================================================
 # DELETE /api/usuarios/<id>
-# Eliminar usuario (soft delete: cambiar a Inactivo)
+# Desactivar usuario (soft delete)
 # ============================================================
 @bp.route('/<int:user_id>', methods=['DELETE'])
 @login_required
 def eliminar(user_id):
-    err = _solo_owner()
+    err = _puede_gestionar_usuarios()
     if err: return err
 
-    u = User.query.get(user_id)
+    u = db.session.get(User, user_id)
     if not u:
         return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
+
+    err = _puede_tocar(u)
+    if err: return err
 
     if u.id == current_user.id:
         return jsonify({'success': False, 'error': 'No puedes eliminarte a ti mismo'}), 400
@@ -254,7 +354,7 @@ def eliminar(user_id):
             'success': True,
             'message': f'Usuario "{u.nombre}" desactivado',
         })
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
@@ -267,12 +367,15 @@ def eliminar(user_id):
 @bp.route('/<int:user_id>/toggle-estado', methods=['POST'])
 @login_required
 def toggle_estado(user_id):
-    err = _solo_owner()
+    err = _puede_gestionar_usuarios()
     if err: return err
 
-    u = User.query.get(user_id)
+    u = db.session.get(User, user_id)
     if not u:
         return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
+
+    err = _puede_tocar(u)
+    if err: return err
 
     if u.id == current_user.id:
         return jsonify({'success': False, 'error': 'No puedes cambiar tu propio estado'}), 400
@@ -286,7 +389,7 @@ def toggle_estado(user_id):
             'message': f'Usuario "{u.nombre}" ahora esta {u.estado.lower()}',
             'estado': u.estado,
         })
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500

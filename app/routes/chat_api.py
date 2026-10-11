@@ -1,4 +1,4 @@
-﻿from flask import Blueprint, request, jsonify
+﻿from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from datetime import datetime, timezone
 
@@ -38,7 +38,6 @@ def _conversaciones_visibles():
     Supervisor: General + sus chats directos
     """
     if current_user.is_owner():
-        # Owner: General + sucursales + sus directos
         return Conversacion.query.filter(
             db.or_(
                 Conversacion.tipo.in_(['general', 'sucursal']),
@@ -52,7 +51,6 @@ def _conversaciones_visibles():
             )
         ).order_by(Conversacion.tipo.desc(), Conversacion.nombre).all()
 
-    # Supervisor: General + chats directos
     conversaciones = Conversacion.query.filter(
         db.or_(
             Conversacion.tipo == 'general',
@@ -72,14 +70,12 @@ def _conversaciones_visibles():
 def _puede_acceder(conv):
     """Verifica si el usuario actual puede acceder a la conversacion."""
     if current_user.is_owner():
-        # Owner puede acceder a general, sucursal, y sus directos
         if conv.tipo in ('general', 'sucursal'):
             return True
         if conv.tipo == 'directo':
             return current_user.id in (conv.usuario_a_id, conv.usuario_b_id)
         return False
 
-    # Supervisor
     if conv.tipo == 'general':
         return True
     if conv.tipo == 'sucursal':
@@ -96,7 +92,7 @@ def _nombre_conversacion(conv):
     """
     if conv.tipo == 'directo':
         otro_id = conv.usuario_b_id if conv.usuario_a_id == current_user.id else conv.usuario_a_id
-        otro = User.query.get(otro_id)
+        otro = db.session.get(User, otro_id)
         if otro:
             sucursal_nombre = otro.sucursal.nombre if otro.sucursal else 'Sin sucursal'
             return f"{otro.nombre} ({sucursal_nombre})"
@@ -115,14 +111,12 @@ def listar_conversaciones():
     try:
         conversaciones = _conversaciones_visibles()
 
-        # Serializar con nombre personalizado
         data = []
         for c in conversaciones:
             d = c.to_dict(usuario_actual=current_user)
             d['nombre'] = _nombre_conversacion(c)
             data.append(d)
 
-        # Ordenar: directos primero, luego general, luego sucursal
         orden = {'directo': 0, 'general': 1, 'sucursal': 2}
         data.sort(key=lambda x: (orden.get(x['tipo'], 99), x['nombre']))
 
@@ -131,13 +125,13 @@ def listar_conversaciones():
             'total': len(data),
             'conversaciones': data,
         })
-    except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+    except Exception:
+        current_app.logger.exception("Error en chat_api.listar_conversaciones")
+        return jsonify({'ok': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
 # GET /api/chat/supervisores
-# Lista de otros supervisores para iniciar chat directo
 # ============================================================
 @bp.route('/supervisores', methods=['GET'])
 @login_required
@@ -147,13 +141,11 @@ def listar_supervisores():
 
     try:
         if current_user.is_owner():
-            # Owner: ve TODOS los supervisores
             supervisores = User.query.filter(
                 User.rol == 'supervisor',
                 User.estado == 'Activo',
             ).order_by(User.nombre).all()
         else:
-            # Supervisor: ve OTROS supervisores + owners
             supervisores = User.query.filter(
                 User.estado == 'Activo',
                 User.id != current_user.id,
@@ -173,13 +165,13 @@ def listar_supervisores():
             'total': len(data),
             'supervisores': data,
         })
-    except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+    except Exception:
+        current_app.logger.exception("Error en chat_api.listar_supervisores")
+        return jsonify({'ok': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
 # POST /api/chat/directo/<user_id>
-# Crear o abrir una conversacion directa con otro usuario
 # ============================================================
 @bp.route('/directo/<int:user_id>', methods=['POST'])
 @login_required
@@ -190,11 +182,10 @@ def abrir_directo(user_id):
     if user_id == current_user.id:
         return jsonify({'ok': False, 'error': 'No puedes chatear contigo mismo'}), 400
 
-    otro = User.query.get(user_id)
+    otro = db.session.get(User, user_id)
     if not otro or otro.estado != 'Activo':
         return jsonify({'ok': False, 'error': 'Usuario no encontrado'}), 404
 
-    # Solo se puede chatear con owner o supervisor
     if otro.rol not in ('owner', 'supervisor'):
         return jsonify({'ok': False, 'error': 'Solo puedes chatear con administradores o supervisores'}), 403
 
@@ -216,9 +207,10 @@ def abrir_directo(user_id):
             'conversacion_id': conv.id,
             'nombre': _nombre_conversacion(conv),
         })
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en chat_api.abrir_directo")
+        return jsonify({'ok': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -230,7 +222,7 @@ def listar_mensajes(conv_id):
     err = _solo_staff()
     if err: return err
 
-    conv = Conversacion.query.get(conv_id)
+    conv = db.session.get(Conversacion, conv_id)
     if not conv:
         return jsonify({'ok': False, 'error': 'Conversacion no encontrada'}), 404
 
@@ -247,7 +239,6 @@ def listar_mensajes(conv_id):
         )
         mensajes.reverse()
 
-        # Serializar conversacion con nombre personalizado
         conv_data = conv.to_dict(usuario_actual=current_user)
         conv_data['nombre'] = _nombre_conversacion(conv)
 
@@ -257,8 +248,9 @@ def listar_mensajes(conv_id):
             'total': len(mensajes),
             'mensajes': [m.to_dict() for m in mensajes],
         })
-    except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 500
+    except Exception:
+        current_app.logger.exception("Error en chat_api.listar_mensajes")
+        return jsonify({'ok': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -270,7 +262,7 @@ def enviar_mensaje(conv_id):
     err = _solo_staff()
     if err: return err
 
-    conv = Conversacion.query.get(conv_id)
+    conv = db.session.get(Conversacion, conv_id)
     if not conv:
         return jsonify({'ok': False, 'error': 'Conversacion no encontrada'}), 404
 
@@ -312,9 +304,10 @@ def enviar_mensaje(conv_id):
             'ok': True,
             'mensaje': mensaje.to_dict(),
         }), 201
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en chat_api.enviar_mensaje")
+        return jsonify({'ok': False, 'error': 'Error interno del servidor'}), 500
 
 
 # ============================================================
@@ -326,7 +319,7 @@ def marcar_leido(conv_id):
     err = _solo_staff()
     if err: return err
 
-    conv = Conversacion.query.get(conv_id)
+    conv = db.session.get(Conversacion, conv_id)
     if not conv:
         return jsonify({'ok': False, 'error': 'Conversacion no encontrada'}), 404
 
@@ -350,6 +343,7 @@ def marcar_leido(conv_id):
         db.session.commit()
 
         return jsonify({'ok': True})
-    except Exception as e:
+    except Exception:
         db.session.rollback()
-        return jsonify({'ok': False, 'error': str(e)}), 500
+        current_app.logger.exception("Error en chat_api.marcar_leido")
+        return jsonify({'ok': False, 'error': 'Error interno del servidor'}), 500

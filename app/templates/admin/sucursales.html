@@ -44,9 +44,9 @@
                     <td>{{ item.obj.telefono or '—' }}</td>
                     <td>
                         {% if item.obj.estado == 'Activa' %}
-                            <span class="badge bg-success-subtle text-success">Activa</span>
+                        <span class="badge bg-success-subtle text-success">Activa</span>
                         {% else %}
-                            <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
+                        <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
                         {% endif %}
                     </td>
                     <td>{{ item.usuarios }}</td>
@@ -54,16 +54,18 @@
                     <td class="text-center">
                         <div class="d-flex gap-1 justify-content-center">
                             <a href="{{ url_for('admin.sucursal_editar', sucursal_id=item.obj.id) }}"
-                               class="btn btn-sm btn-outline-primary" title="Editar">
+                                class="btn btn-sm btn-outline-primary" title="Editar">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <form method="POST" action="{{ url_for('admin.sucursal_toggle_estado', sucursal_id=item.obj.id) }}"
-                                  class="d-inline"
-                                  onsubmit="return confirm('¿Cambiar estado de {{ item.obj.nombre }}?')">
+                            <form method="POST"
+                                action="{{ url_for('admin.sucursal_toggle_estado', sucursal_id=item.obj.id) }}"
+                                class="d-inline" data-sucursal-nombre="{{ item.obj.nombre }}"
+                                onsubmit="return confirmarToggleSucursal(this)">
                                 <button type="submit"
-                                        class="btn btn-sm btn-outline-{{ 'warning' if item.obj.estado == 'Activa' else 'success' }}"
-                                        title="{{ 'Desactivar' if item.obj.estado == 'Activa' else 'Activar' }}">
-                                    <i class="bi bi-{{ 'pause-circle' if item.obj.estado == 'Activa' else 'play-circle' }}"></i>
+                                    class="btn btn-sm btn-outline-{{ 'warning' if item.obj.estado == 'Activa' else 'success' }}"
+                                    title="{{ 'Desactivar' if item.obj.estado == 'Activa' else 'Activar' }}">
+                                    <i
+                                        class="bi bi-{{ 'pause-circle' if item.obj.estado == 'Activa' else 'play-circle' }}"></i>
                                 </button>
                             </form>
                         </div>
@@ -81,4 +83,12 @@
     </section>
 
 </div>
+
+<script>
+    // Confirmacion segura para toggle de estado de sucursal
+    function confirmarToggleSucursal(form) {
+        const nombre = form.dataset.sucursalNombre || 'esta sucursal';
+        return confirm('¿Cambiar estado de ' + nombre + '?');
+    }
+</script>
 {% endblock %}

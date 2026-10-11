@@ -10,7 +10,46 @@ bp = Blueprint('proveedores_api', __name__, url_prefix='/api/proveedores')
 
 
 # ============================================================
-# HELPERS
+# HELPERS DE PERMISOS
+# ============================================================
+def _solo_owner():
+    """Owner solamente. Devuelve None si OK, o (jsonify, status) si hay error."""
+    if not current_user.is_owner():
+        return jsonify({
+            'success': False,
+            'error': 'Solo el administrador puede realizar esta accion'
+        }), 403
+    return None
+
+
+def _owner_o_supervisor():
+    """Owner o supervisor. Devuelve None si OK, o (jsonify, status) si hay error."""
+    if not (current_user.is_owner() or current_user.is_supervisor()):
+        return jsonify({
+            'success': False,
+            'error': 'Solo el administrador o supervisor pueden realizar esta accion'
+        }), 403
+    return None
+
+
+# ============================================================
+# HELPERS DE SANITIZACION
+# ============================================================
+def _sanitizar_nombre(nombre):
+    """
+    Evita inyeccion de formulas en Excel/CSV.
+    Si el nombre empieza con =, +, -, @, tab o CR, lo prefija con '
+    para que Excel lo trate como texto.
+    """
+    if not nombre:
+        return nombre
+    if nombre[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + nombre
+    return nombre
+
+
+# ============================================================
+# HELPERS DE SERIALIZACION
 # ============================================================
 def _serializar(p, incluir_stats=False):
     data = {
@@ -23,7 +62,18 @@ def _serializar(p, incluir_stats=False):
     }
 
     if incluir_stats:
-        facturas = Factura.query.filter_by(proveedor_id=p.id).all()
+        # SEGURIDAD: filtrar facturas por sucursal segun rol
+        query = Factura.query.filter_by(proveedor_id=p.id)
+        if current_user.is_supervisor() and current_user.sucursal_id:
+            query = query.filter(Factura.sucursal_id == current_user.sucursal_id)
+        elif not current_user.is_owner() and not current_user.is_supervisor():
+            # Empleado: ve solo las de su sucursal
+            if current_user.sucursal_id:
+                query = query.filter(Factura.sucursal_id == current_user.sucursal_id)
+            else:
+                query = query.filter(Factura.sucursal_id == -1)
+
+        facturas = query.all()
         data['total_facturas'] = len(facturas)
         data['monto_total'] = round(sum((f.total_factura or 0) for f in facturas), 2)
 
@@ -55,7 +105,7 @@ def listar():
             'total': len(proveedores),
             'proveedores': [_serializar(p, incluir_stats=con_stats) for p in proveedores],
         })
-    except Exception as e:
+    except Exception:
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
 
@@ -67,7 +117,7 @@ def listar():
 @bp.route('/<int:proveedor_id>', methods=['GET'])
 @login_required
 def ver(proveedor_id):
-    p = Proveedor.query.get(proveedor_id)
+    p = db.session.get(Proveedor, proveedor_id)
     if not p:
         return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
 
@@ -79,17 +129,23 @@ def ver(proveedor_id):
 
 # ============================================================
 # POST /api/proveedores/
-# Crear proveedor
+# Crear proveedor (owner + supervisor)
 # ============================================================
 @bp.route('/', methods=['POST'])
 @login_required
 def crear():
+    err = _owner_o_supervisor()
+    if err: return err
+
     data = request.get_json(silent=True) or {}
 
     nombre = (data.get('nombre') or '').strip()
     telefono = (data.get('telefono') or '').strip() or None
     email = (data.get('email') or '').strip() or None
     estado = data.get('estado') or 'Activo'
+
+    # Sanitizar nombre (evita formulas en Excel)
+    nombre = _sanitizar_nombre(nombre)
 
     errores = []
     if not nombre or len(nombre) < 2:
@@ -117,7 +173,7 @@ def crear():
             'message': f'Proveedor "{p.nombre}" creado',
             'proveedor': _serializar(p),
         }), 201
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
@@ -125,12 +181,15 @@ def crear():
 
 # ============================================================
 # PUT /api/proveedores/<id>
-# Actualizar proveedor
+# Actualizar proveedor (owner + supervisor)
 # ============================================================
 @bp.route('/<int:proveedor_id>', methods=['PUT'])
 @login_required
 def actualizar(proveedor_id):
-    p = Proveedor.query.get(proveedor_id)
+    err = _owner_o_supervisor()
+    if err: return err
+
+    p = db.session.get(Proveedor, proveedor_id)
     if not p:
         return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
 
@@ -140,6 +199,9 @@ def actualizar(proveedor_id):
     telefono = (data.get('telefono') or '').strip() or None
     email = (data.get('email') or '').strip() or None
     estado = data.get('estado') or 'Activo'
+
+    # Sanitizar nombre
+    nombre = _sanitizar_nombre(nombre)
 
     errores = []
     if not nombre or len(nombre) < 2:
@@ -170,7 +232,7 @@ def actualizar(proveedor_id):
             'message': f'Proveedor "{p.nombre}" actualizado',
             'proveedor': _serializar(p),
         })
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
@@ -178,12 +240,15 @@ def actualizar(proveedor_id):
 
 # ============================================================
 # DELETE /api/proveedores/<id>
-# Desactivar proveedor (soft delete)
+# Desactivar proveedor (soft delete) - SOLO OWNER
 # ============================================================
 @bp.route('/<int:proveedor_id>', methods=['DELETE'])
 @login_required
 def eliminar(proveedor_id):
-    p = Proveedor.query.get(proveedor_id)
+    err = _solo_owner()
+    if err: return err
+
+    p = db.session.get(Proveedor, proveedor_id)
     if not p:
         return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
 
@@ -203,7 +268,7 @@ def eliminar(proveedor_id):
             'success': True,
             'message': f'Proveedor "{p.nombre}" desactivado',
         })
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500
@@ -211,12 +276,15 @@ def eliminar(proveedor_id):
 
 # ============================================================
 # POST /api/proveedores/<id>/toggle-estado
-# Activar/desactivar
+# Activar/desactivar (owner + supervisor)
 # ============================================================
 @bp.route('/<int:proveedor_id>/toggle-estado', methods=['POST'])
 @login_required
 def toggle_estado(proveedor_id):
-    p = Proveedor.query.get(proveedor_id)
+    err = _owner_o_supervisor()
+    if err: return err
+
+    p = db.session.get(Proveedor, proveedor_id)
     if not p:
         return jsonify({'success': False, 'error': 'Proveedor no encontrado'}), 404
 
@@ -229,7 +297,7 @@ def toggle_estado(proveedor_id):
             'message': f'Proveedor "{p.nombre}" ahora esta {p.estado.lower()}',
             'estado': p.estado,
         })
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         current_app.logger.exception("Error en endpoint")
         return jsonify({'success': False, 'error': 'Error interno del servidor'}), 500

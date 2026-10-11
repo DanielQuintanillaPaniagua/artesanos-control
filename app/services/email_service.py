@@ -42,8 +42,21 @@ def enviar_email(destinatario, asunto, html_body, texto_body=None):
             server.login(cfg['user'], cfg['password'])
             server.send_message(msg)
         return True, None
-    except Exception as e:
-        return False, str(e)
+    except smtplib.SMTPAuthenticationError:
+        # Error de credenciales: mensaje claro pero sin exponer la password
+        return False, 'Error de autenticacion SMTP. Verifica usuario y contrasena.'
+    except smtplib.SMTPConnectError:
+        return False, 'No se pudo conectar al servidor SMTP.'
+    except smtplib.SMTPException:
+        # Otros errores SMTP: loggear y devolver mensaje generico
+        import logging
+        logging.getLogger(__name__).exception("Error SMTP")
+        return False, 'Error al enviar el correo. Intenta de nuevo.'
+    except Exception:
+        # Errores inesperados (timeout, red, etc.)
+        import logging
+        logging.getLogger(__name__).exception("Error inesperado al enviar email")
+        return False, 'Error interno al enviar el correo.'
 
 
 def enviar_email_recuperacion(destinatario, nombre, link):
