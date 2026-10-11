@@ -119,13 +119,21 @@ def facturas_por_sucursal():
         hasta_str = request.args.get('hasta')
         desde, hasta = _rango(desde_str, hasta_str)
 
-        facturas = Factura.query.filter(
+        # SEGURIDAD: usar _query_base() para filtrar por rol
+        facturas = _query_base().filter(
             Factura.fecha >= desde,
             Factura.fecha <= hasta,
         ).all()
 
         resultado = []
-        for s in Sucursal.query.order_by(Sucursal.nombre).all():
+
+        # Supervisor y empleado: solo su sucursal
+        if current_user.is_owner():
+            sucursales_q = Sucursal.query.order_by(Sucursal.nombre).all()
+        else:
+            sucursales_q = [current_user.sucursal] if current_user.sucursal else []
+
+        for s in sucursales_q:
             f_suc = [f for f in facturas if f.sucursal_id == s.id]
             total = len(f_suc)
             val = sum(1 for f in f_suc if f.estado == 'Validada')
