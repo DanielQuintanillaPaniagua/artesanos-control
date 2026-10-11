@@ -72,6 +72,26 @@ function mostrarBanner(mensaje, tipo = 'offline', contador = null) {
     banner.style.display = 'flex';
     banner.className = 'banner-conexion ' + tipo;
     texto.textContent = mensaje;
+    function descartarRechazadas() {
+        /** Elimina de la cola las facturas marcadas con _error. */
+        const cola = obtenerCola();
+        const rechazadas = cola.filter(f => f._error);
+
+        if (rechazadas.length === 0) {
+            alert('No hay facturas rechazadas para descartar.');
+            return;
+        }
+
+        if (!confirm(`¿Descartar ${rechazadas.length} factura(s) rechazada(s)? Esta accion no se puede deshacer.`)) {
+            return;
+        }
+
+        const limpias = cola.filter(f => !f._error);
+        guardarCola(limpias);
+        actualizarBadgeBanner();
+
+        alert(`${rechazadas.length} factura(s) descartada(s).`);
+    }
 
     // Iconos por tipo
     if (tipo === 'online') {
@@ -105,6 +125,10 @@ function actualizarBadgeBanner() {
     const cola = obtenerCola();
     const banner = document.getElementById('banner-conexion');
 
+    // Limpiar boton viejo si existe
+    const btnViejo = document.getElementById('btn-descartar-rechazadas');
+    if (btnViejo) btnViejo.remove();
+
     if (cola.length === 0) {
         if (hayConexion()) {
             ocultarBanner();
@@ -120,10 +144,20 @@ function actualizarBadgeBanner() {
     if (hayConexion()) {
         if (conError > 0) {
             mostrarBanner(
-                `${conError} factura(s) rechazada(s) por el servidor - Requiere atencion`,
+                `${conError} factura(s) rechazada(s) por el servidor`,
                 'offline',
                 cola.length
             );
+
+            // Boton para descartar las rechazadas
+            if (banner) {
+                const btn = document.createElement('button');
+                btn.id = 'btn-descartar-rechazadas';
+                btn.textContent = 'Descartar rechazadas';
+                btn.style.cssText = 'margin-left:12px; padding:4px 10px; font-size:12px; border:1px solid #fff; background:transparent; color:#fff; border-radius:6px; cursor:pointer;';
+                btn.onclick = descartarRechazadas;
+                banner.appendChild(btn);
+            }
         } else {
             mostrarBanner(`Sincronizando ${cola.length} factura(s)...`, 'sincronizando', cola.length);
         }
@@ -151,11 +185,17 @@ async function sincronizarCola() {
     let fallidas = 0;
 
     for (const factura of [...cola]) {
+        // SEGURIDAD: no reintentar las que ya fallaron y estan marcadas
+        if (factura._error) {
+            continue;
+        }
+
         try {
             // Quitar campos locales antes de enviar
             const datosEnviar = { ...factura };
             delete datosEnviar._id_local;
             delete datosEnviar._fecha_guardado;
+            delete datosEnviar._error;
 
             const resp = await fetch('/api/facturas/', {
                 method: 'POST',

@@ -138,6 +138,11 @@ def create_factura():
     if total_factura <= 0:
         return jsonify({'success': False, 'error': 'El total de la factura debe ser mayor a cero'}), 400
 
+    # SEGURIDAD: tope maximo (igual que en editar_factura.py)
+    MAX_MONTO = 1_000_000_000_000  # 1 billon
+    if total_factura > MAX_MONTO:
+        return jsonify({'success': False, 'error': 'El total excede el maximo permitido'}), 400
+
     # 5. Validar fecha (NO reemplazar por hoy silenciosamente)
     fecha, err = _parsear_fecha(fecha_str)
     if err:
@@ -166,6 +171,8 @@ def create_factura():
             return jsonify({'success': False, 'error': err}), 400
         if monto < 0:
             return jsonify({'success': False, 'error': f'Detalle {i+1}: el monto no puede ser negativo'}), 400
+        if monto > MAX_MONTO:
+            return jsonify({'success': False, 'error': f'Detalle {i+1}: el monto excede el maximo permitido'}), 400
 
         cat_id = d.get('categoria_id')
         try:
