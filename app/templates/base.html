@@ -85,14 +85,6 @@
                 </a>
                 {% endif %}
 
-                {# ---- Solo owner: Mi perfil ---- #}
-                {% if current_user.is_owner() %}
-                <a href="{{ url_for('perfil.index') }}"
-                    class="sidebar-item {% if 'perfil' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-person-circle"></i> Mi perfil
-                </a>
-                {% endif %}
-
                 {# ---- Owner y supervisor: Artesanos AI ---- #}
                 {% if current_user.is_owner() or current_user.is_supervisor() %}
                 <a href="{{ url_for('artesanos_ai.index') }}"

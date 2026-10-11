@@ -134,7 +134,7 @@ def ver(proveedor_id):
 @bp.route('/', methods=['POST'])
 @login_required
 def crear():
-    err = _owner_o_supervisor()
+    err = _solo_owner()
     if err: return err
 
     data = request.get_json(silent=True) or {}
@@ -186,7 +186,7 @@ def crear():
 @bp.route('/<int:proveedor_id>', methods=['PUT'])
 @login_required
 def actualizar(proveedor_id):
-    err = _owner_o_supervisor()
+    err = _solo_owner()
     if err: return err
 
     p = db.session.get(Proveedor, proveedor_id)
@@ -281,7 +281,7 @@ def eliminar(proveedor_id):
 @bp.route('/<int:proveedor_id>/toggle-estado', methods=['POST'])
 @login_required
 def toggle_estado(proveedor_id):
-    err = _owner_o_supervisor()
+    err = _solo_owner()
     if err: return err
 
     p = db.session.get(Proveedor, proveedor_id)

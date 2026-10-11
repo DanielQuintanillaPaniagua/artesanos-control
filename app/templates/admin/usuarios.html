@@ -114,6 +114,7 @@
             </button>
         </div>
         <form method="POST" id="formPassword" class="modal-body">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <p class="text-muted small mb-3">
                 Usuario: <strong id="modalPasswordNombre">—</strong>
             </p>

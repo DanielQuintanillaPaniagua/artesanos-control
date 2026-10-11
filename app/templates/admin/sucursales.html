@@ -61,6 +61,7 @@
                                 action="{{ url_for('admin.sucursal_toggle_estado', sucursal_id=item.obj.id) }}"
                                 class="d-inline" data-sucursal-nombre="{{ item.obj.nombre }}"
                                 onsubmit="return confirmarToggleSucursal(this)">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit"
                                     class="btn btn-sm btn-outline-{{ 'warning' if item.obj.estado == 'Activa' else 'success' }}"
                                     title="{{ 'Desactivar' if item.obj.estado == 'Activa' else 'Activar' }}">
