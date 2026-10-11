@@ -52,6 +52,27 @@ function marcarConError(idLocal, mensajeError) {
         guardarCola(cola);
     }
 }
+// Descartar facturas rechazadas (funcion global)
+function descartarRechazadas() {
+    /** Elimina de la cola las facturas marcadas con _error. */
+    const cola = obtenerCola();
+    const rechazadas = cola.filter(f => f._error);
+
+    if (rechazadas.length === 0) {
+        alert('No hay facturas rechazadas para descartar.');
+        return;
+    }
+
+    if (!confirm(`¿Descartar ${rechazadas.length} factura(s) rechazada(s)? Esta accion no se puede deshacer.`)) {
+        return;
+    }
+
+    const limpias = cola.filter(f => !f._error);
+    guardarCola(limpias);
+    actualizarBadgeBanner();
+
+    alert(`${rechazadas.length} factura(s) descartada(s).`);
+}
 
 
 // DETECCION DE CONEXION
@@ -72,26 +93,7 @@ function mostrarBanner(mensaje, tipo = 'offline', contador = null) {
     banner.style.display = 'flex';
     banner.className = 'banner-conexion ' + tipo;
     texto.textContent = mensaje;
-    function descartarRechazadas() {
-        /** Elimina de la cola las facturas marcadas con _error. */
-        const cola = obtenerCola();
-        const rechazadas = cola.filter(f => f._error);
 
-        if (rechazadas.length === 0) {
-            alert('No hay facturas rechazadas para descartar.');
-            return;
-        }
-
-        if (!confirm(`¿Descartar ${rechazadas.length} factura(s) rechazada(s)? Esta accion no se puede deshacer.`)) {
-            return;
-        }
-
-        const limpias = cola.filter(f => !f._error);
-        guardarCola(limpias);
-        actualizarBadgeBanner();
-
-        alert(`${rechazadas.length} factura(s) descartada(s).`);
-    }
 
     // Iconos por tipo
     if (tipo === 'online') {
