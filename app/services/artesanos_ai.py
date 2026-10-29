@@ -1,7 +1,8 @@
 import os
-import google.generativeai as genai
+import time
+import logging
+from google import genai
 from datetime import date, datetime, timedelta
-from sqlalchemy import func
 
 from app import db
 from app.models.factura import Factura
@@ -11,28 +12,67 @@ from app.models.sucursal import Sucursal
 from app.models.categoria import Categoria
 from app.models.user import User
 
+logger = logging.getLogger(__name__)
 
 # ============================================================
-# Configuracion de Gemini
+# Configuracion de Gemini (Nuevo SDK google-genai)
 # ============================================================
-MODEL_NAME = "gemini-3.8-flash"
+# gemini-2.5-flash: modelo estable y rápido (recomendado)
+# gemini-3.8-flash: modelo más nuevo, pero a veces saturado (503)
+MODEL_NAME = "gemini-2.5-flash"
 
 
-def _get_model():
-    """Crea el modelo de Gemini con la API key del .env."""
+def _get_client():
+    """Crea el cliente de Gemini con la API key del .env."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY no configurada en el .env")
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(MODEL_NAME)
+    return genai.Client(api_key=api_key)
+
+
+def _llamar_gemini_con_reintentos(cliente, prompt, max_intentos=3):
+    """
+    Llama a Gemini con reintentos automaticos en caso de 503 (alta demanda).
+    Backoff exponencial: 2s, 4s entre intentos.
+    """
+    ultimo_error = None
+
+    for intento in range(1, max_intentos + 1):
+        try:
+            return cliente.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt,
+            )
+        except Exception as e:
+            err_str = str(e).lower()
+            ultimo_error = e
+
+            # Solo reintentar en errores transitorios del servidor
+            es_transitorio = any(code in err_str for code in [
+                '503', '500', '429', 'unavailable', 'overloaded', 'timeout'
+            ])
+
+            if es_transitorio and intento < max_intentos:
+                espera = 2 * intento  # 2s, 4s
+                logger.warning(
+                    f"Gemini fallo (intento {intento}/{max_intentos}): {str(e)[:100]}. "
+                    f"Reintentando en {espera}s..."
+                )
+                time.sleep(espera)
+                continue
+
+            # Error no transitorio o ultimo intento: lanzar
+            raise
+
+    # Si llegamos aca, se agotaron los intentos
+    raise ultimo_error or Exception("Gemini fallo despues de multiples intentos")
 
 
 # ============================================================
-# Recopilar contexto del negocio
+# Recopilar contexto del negocio (AMPLIADO)
 # ============================================================
 def _recopilar_contexto(sucursal_id=None):
     """Recopila resumen de datos de Artesanos Control para darselo a Gemini."""
-
     hoy = date.today()
     inicio_mes = hoy.replace(day=1)
 
@@ -48,14 +88,31 @@ def _recopilar_contexto(sucursal_id=None):
     validadas_mes = sum(1 for f in facturas_mes if f.estado == 'Validada')
     observadas_mes = sum(1 for f in facturas_mes if f.estado == 'Observada')
 
+    # --- Datos de Sucursales y Usuarios (AMPLIADO) ---
     if sucursal_id:
-        total_sucursales = 1
-        total_usuarios = User.query.filter_by(estado='Activo', sucursal_id=sucursal_id).count()
-        total_proveedores = Proveedor.query.filter_by(estado='Activo').count()
+        sucursales_db = Sucursal.query.filter_by(id=sucursal_id).all()
+        total_sucursales = len(sucursales_db)
     else:
-        total_sucursales = Sucursal.query.filter_by(estado='Activa').count()
-        total_usuarios = User.query.filter_by(estado='Activo').count()
-        total_proveedores = Proveedor.query.filter_by(estado='Activo').count()
+        sucursales_db = Sucursal.query.order_by(Sucursal.nombre).all()
+        total_sucursales = sum(1 for s in sucursales_db if s.estado == 'Activa')
+
+    # Lista de nombres de sucursales
+    sucursales_nombres = ", ".join([f"{s.nombre} ({s.estado})" for s in sucursales_db])
+
+    # Conteo de usuarios
+    query_users = User.query.filter_by(estado='Activo')
+    if sucursal_id:
+        query_users = query_users.filter_by(sucursal_id=sucursal_id)
+    
+    usuarios_activos = query_users.all()
+    total_usuarios = len(usuarios_activos)
+    
+    # Desglose de usuarios por rol
+    owners = sum(1 for u in usuarios_activos if u.rol == 'owner')
+    supervisores = sum(1 for u in usuarios_activos if u.rol == 'supervisor')
+    empleados = sum(1 for u in usuarios_activos if u.rol == 'empleado')
+    
+    total_proveedores = Proveedor.query.filter_by(estado='Activo').count()
 
     # --- Desglose por sucursal (ultimo mes) ---
     sucursales_info = []
@@ -123,15 +180,17 @@ def _recopilar_contexto(sucursal_id=None):
 Fecha de hoy: {hoy.strftime('%d/%m/%Y')}
 Periodo del reporte: mes actual (desde {inicio_mes.strftime('%d/%m/%Y')})
 
-RESUMEN GENERAL:
-- Total de facturas registradas: {total_facturas}
+ESTRUCTURA DEL NEGOCIO:
+- Sucursales registradas: {sucursales_nombres}
+- Total de usuarios activos: {total_usuarios} (Owners: {owners}, Supervisores: {supervisores}, Empleados: {empleados})
+- Total de proveedores activos: {total_proveedores}
+
+RESUMEN DE FACTURAS GENERAL:
+- Total de facturas historicas: {total_facturas}
 - Facturas del mes actual: {total_facturas_mes}
 - Monto total del mes: ${monto_mes:.2f}
-- Facturas validadas: {validadas_mes}
-- Facturas observadas: {observadas_mes}
-- Total de sucursales activas: {total_sucursales}
-- Total de usuarios activos: {total_usuarios}
-- Total de proveedores activos: {total_proveedores}
+- Facturas validadas este mes: {validadas_mes}
+- Facturas observadas este mes: {observadas_mes}
 
 DESEMPENO POR SUCURSAL (mes actual):
 {sucursales_txt}
@@ -158,10 +217,10 @@ def preguntar_a_artesanos_ai(pregunta_usuario, historial=None, sucursal_id=None)
     """Envia una pregunta a Gemini con el contexto de Artesanos Control."""
 
     try:
-        modelo = _get_model()
+        cliente = _get_client()
         contexto = _recopilar_contexto(sucursal_id=sucursal_id)
 
-        prompt = f"""Eres "Artesanos AI", el asistente inteligente del sistema "Artesanos Control" de ARTESANOS PIZZERIA (una empresa salvadorena con 3 sucursales: Usulutan, San Salvador y San Miguel).
+        prompt = f"""Eres "Artesanos AI", el asistente inteligente del sistema "Artesanos Control" de ARTESANOS PIZZERIA (una empresa salvadorena).
 
 Tu personalidad:
 - Profesional, conciso y servicial.
@@ -177,6 +236,7 @@ REGLAS ESTRICTAS:
 5. Se conciso: maximo 180 palabras por respuesta.
 6. Si el usuario pregunta por una sucursal especifica, filtra los datos por esa sucursal.
 7. Los montos son en dolares (USD).
+8. Tienes permitido decir cuantos usuarios/empleados hay si te lo preguntan usando la seccion ESTRUCTURA DEL NEGOCIO.
 
 CONTEXTO ACTUAL DE ARTESANOS CONTROL:
 {contexto}
@@ -186,19 +246,33 @@ PREGUNTA DEL USUARIO:
 
 RESPUESTA:"""
 
-        respuesta = modelo.generate_content(prompt)
+        # Llamar con reintentos automaticos
+        respuesta = _llamar_gemini_con_reintentos(cliente, prompt)
+
         return {
             'ok': True,
             'respuesta': respuesta.text
         }
 
     except ValueError as e:
-        # ValueError: tipicamente "GEMINI_API_KEY no configurada". Seguro de mostrar.
+        # Error de configuracion (ej: falta API Key). Seguro de mostrar.
         return {'ok': False, 'error': str(e)}
-    except Exception:
-        # Cualquier otro error: NO filtrar detalles al cliente.
-        import logging
-        logging.getLogger(__name__).exception("Error en Artesanos AI")
+    except Exception as e:
+        # Cualquier otro error: loggear y devolver mensaje generico
+        logger.exception("Error en Artesanos AI")
+
+        err_str = str(e).lower()
+        if "model" in err_str and "not found" in err_str:
+            return {
+                'ok': False,
+                'error': "El modelo de IA configurado no esta disponible. Contacta al administrador."
+            }
+        if "503" in err_str or "unavailable" in err_str:
+            return {
+                'ok': False,
+                'error': "El servicio de IA esta experimentando alta demanda. Intenta de nuevo en unos segundos."
+            }
+
         return {
             'ok': False,
             'error': "Lo siento, tuve un problema al procesar tu consulta. Intenta de nuevo en unos minutos."
