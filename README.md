@@ -18,7 +18,7 @@
 
 ## 📖 Descripción
 
-**ARTESANOS CONTROL** es una aplicación Flask hecha para una empresa salvadoreña real, con sucursales en **San Salvador, Usulután y San Miguel**. Reemplaza el control de compras en Excel por un sistema centralizado.
+**ARTESANOS CONTROL** es una aplicación Flask hecha para una empresa salvadoreña real, con distintas sucursales Reemplaza el control de compras en Excel por un sistema centralizado.
 
 Cada empleado registra las facturas de compra de su sucursal con un **desglose obligatorio por categorías** (Comida, Bebida, Limpieza, etc.). Antes de guardar, el sistema valida que **la suma de las categorías sea exactamente igual al total de la factura**; si no cuadra, bloquea el guardado.
 
