@@ -1,7 +1,7 @@
 ﻿import json
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-
+from sqlalchemy import or_
 from flask import Blueprint, render_template, request, jsonify, current_app, url_for
 from flask_login import login_required, current_user
 
@@ -54,12 +54,28 @@ def pantalla_editar(factura_id):
         .all()
     )
 
+    montos = {d.categoria_id: d.monto for d in detalles}
+
+    # Solo categorias/proveedores activos (+ los que ya usa esta factura, para no perderlos)
+    categorias = (
+        Categoria.query
+        .filter(or_(Categoria.estado == "Activa", Categoria.id.in_(list(montos.keys()) or [-1])))
+        .order_by(Categoria.orden)
+        .all()
+    )
+    proveedores = (
+        Proveedor.query
+        .filter(or_(Proveedor.estado == "Activo", Proveedor.id == factura.proveedor_id))
+        .order_by(Proveedor.nombre)
+        .all()
+    )
+
     return render_template(
         "facturas/editar_factura.html",
         factura=factura,
-        proveedores=Proveedor.query.all(),
-        categorias=Categoria.query.all(),
-        montos={d.categoria_id: d.monto for d in detalles},
+        proveedores=proveedores,
+        categorias=categorias,
+        montos=montos,
         historial=historial,
     )
 
@@ -106,14 +122,23 @@ def guardar_correccion(factura_id):
         diferencia = total - suma
         return jsonify(error=f"El desglose no coincide con la factura. Diferencia: ${diferencia}"), 400
 
-    if not Proveedor.query.get(proveedor_id):
+    prov = Proveedor.query.get(proveedor_id)
+    if not prov:
         return jsonify(error="Proveedor inexistente"), 400
+    if prov.estado != "Activo" and proveedor_id != factura.proveedor_id:
+        return jsonify(error="El proveedor seleccionado esta desactivado"), 400
 
     ids_cat = {c for c, _ in detalle}
-    existentes = {c.id for c in Categoria.query.filter(Categoria.id.in_(ids_cat)).all()}
-    faltantes = ids_cat - existentes
+    existentes = {c.id: c for c in Categoria.query.filter(Categoria.id.in_(ids_cat)).all()}
+    faltantes = ids_cat - set(existentes)
     if faltantes:
         return jsonify(error=f"Categorias inexistentes: {sorted(faltantes)}"), 400
+
+    # Una categoria desactivada solo se acepta si la factura ya la tenia
+    ya_usadas = {d.categoria_id for d in DetalleFactura.query.filter_by(factura_id=factura.id).all()}
+    desactivadas = [c.nombre for cid, c in existentes.items() if c.estado != "Activa" and cid not in ya_usadas]
+    if desactivadas:
+        return jsonify(error=f"Categorias desactivadas: {', '.join(desactivadas)}"), 400
 
     try:
         antes = _instantanea(

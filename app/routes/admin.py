@@ -469,6 +469,64 @@ def sucursal_toggle_estado(sucursal_id):
     flash(f'Sucursal "{s.nombre}" ahora esta {s.estado.lower()}.', 'success')
     return redirect(url_for('admin.sucursales'))
 
+# ==================================================
+# CATEGORIAS Y PROVEEDORES (activar / desactivar) - SOLO OWNER
+# ==================================================
+@bp.route('/catalogo')
+@login_required
+def catalogo():
+    _solo_owner()
+    from app.models.categoria import Categoria
+    from app.models.proveedor import Proveedor
+
+    categorias = Categoria.query.order_by(Categoria.estado, Categoria.orden, Categoria.nombre).all()
+    proveedores = Proveedor.query.order_by(Proveedor.estado, Proveedor.nombre).all()
+
+    # Cuantas facturas usan cada una (informativo)
+    uso_cat = dict(
+        db.session.query(DetalleFactura.categoria_id, db.func.count(DetalleFactura.id))
+        .group_by(DetalleFactura.categoria_id).all()
+    )
+    uso_prov = dict(
+        db.session.query(Factura.proveedor_id, db.func.count(Factura.id))
+        .group_by(Factura.proveedor_id).all()
+    )
+
+    return render_template(
+        'admin/catalogo.html',
+        categorias=categorias,
+        proveedores=proveedores,
+        uso_cat=uso_cat,
+        uso_prov=uso_prov,
+    )
+
+
+@bp.route('/categorias/<int:categoria_id>/toggle-estado', methods=['POST'])
+@login_required
+def categoria_toggle_estado(categoria_id):
+    _solo_owner()
+    from app.models.categoria import Categoria
+    c = Categoria.query.get_or_404(categoria_id)
+
+    c.estado = 'Inactiva' if c.estado == 'Activa' else 'Activa'
+    db.session.commit()
+
+    flash(f'Categoria "{c.nombre}" ahora esta {c.estado.lower()}.', 'success')
+    return redirect(url_for('admin.catalogo') + '#categorias')
+
+
+@bp.route('/proveedores/<int:proveedor_id>/toggle-estado', methods=['POST'])
+@login_required
+def proveedor_toggle_estado(proveedor_id):
+    _solo_owner()
+    from app.models.proveedor import Proveedor
+    p = Proveedor.query.get_or_404(proveedor_id)
+
+    p.estado = 'Inactivo' if p.estado == 'Activo' else 'Activo'
+    db.session.commit()
+
+    flash(f'Proveedor "{p.nombre}" ahora esta {p.estado.lower()}.', 'success')
+    return redirect(url_for('admin.catalogo') + '#proveedores')
 
 # ==================================================
 # REPORTES CSV

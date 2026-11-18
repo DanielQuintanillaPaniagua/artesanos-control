@@ -49,7 +49,17 @@ def exportar_facturas_excel(facturas, categorias):
     ws = wb.active
     ws.title = "FACTURAS"
 
-    cats = sorted(categorias, key=lambda c: c.orden or 0)
+    # Incluir tambien categorias desactivadas que tengan montos en estas facturas,
+    # para que no "desaparezca" dinero de las columnas ni de los totales.
+    cats_lista = list(categorias)
+    ids_incluidas = {c.id for c in cats_lista}
+    for factura in facturas:
+        for d in factura.detalles:
+            if d.categoria_id not in ids_incluidas and d.categoria and (d.monto or 0) > 0:
+                cats_lista.append(d.categoria)
+                ids_incluidas.add(d.categoria_id)
+
+    cats = sorted(cats_lista, key=lambda c: c.orden or 0)
 
     # Mapear grupos -> lista de columnas
     grupos = {}

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Categorías y proveedores{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=3">
+{% endblock %}
+
+{% block body_content %}
+<div class="container-fluid py-4">
+
+    <div class="dash-head">
+        <div>
+            <h1><i class="bi bi-tags me-2"></i>Categorías y proveedores</h1>
+            <p>Desactiva las que ya no uses: dejan de aparecer en las listas, pero las facturas anteriores conservan sus
+                datos.</p>
+        </div>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Volver a administración
+        </a>
+    </div>
+
+    {# ---------- Categorias ---------- #}
+    <section class="dash-panel mb-4" id="categorias">
+        <div class="dash-panel-head">
+            <h2><i class="bi bi-grid me-2"></i>Categorías</h2>
+            <span class="tag">{{ categorias|selectattr('estado', 'equalto', 'Activa')|list|length }} activas de {{
+                categorias|length }}</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Grupo</th>
+                    <th>Facturas</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in categorias %}
+                <tr {% if c.estado !='Activa' %}class="text-muted" {% endif %}>
+                    <td><span class="dash-suc-name">{{ c.nombre }}</span></td>
+                    <td>{{ c.grupo or '—' }}</td>
+                    <td>{{ uso_cat.get(c.id, 0) }}</td>
+                    <td>
+                        {% if c.estado == 'Activa' %}
+                        <span class="badge bg-success-subtle text-success">Activa</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary">Desactivada</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <form method="POST" action="{{ url_for('admin.categoria_toggle_estado', categoria_id=c.id) }}"
+                            class="d-inline" data-nombre="{{ c.nombre }}"
+                            data-activa="{{ '1' if c.estado == 'Activa' else '0' }}"
+                            onsubmit="return confirmarCambio(this)">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit"
+                                class="btn btn-sm btn-outline-{{ 'warning' if c.estado == 'Activa' else 'success' }}">
+                                <i
+                                    class="bi bi-{{ 'pause-circle' if c.estado == 'Activa' else 'play-circle' }} me-1"></i>
+                                {{ 'Desactivar' if c.estado == 'Activa' else 'Activar' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">No hay categorías.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    {# ---------- Proveedores ---------- #}
+    <section class="dash-panel" id="proveedores">
+        <div class="dash-panel-head">
+            <h2><i class="bi bi-truck me-2"></i>Proveedores</h2>
+            <span class="tag">{{ proveedores|selectattr('estado', 'equalto', 'Activo')|list|length }} activos de {{
+                proveedores|length }}</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Teléfono</th>
+                    <th>Facturas</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in proveedores %}
+                <tr {% if p.estado !='Activo' %}class="text-muted" {% endif %}>
+                    <td><span class="dash-suc-name">{{ p.nombre }}</span></td>
+                    <td>{{ p.telefono or '—' }}</td>
+                    <td>{{ uso_prov.get(p.id, 0) }}</td>
+                    <td>
+                        {% if p.estado == 'Activo' %}
+                        <span class="badge bg-success-subtle text-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary">Desactivado</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <form method="POST" action="{{ url_for('admin.proveedor_toggle_estado', proveedor_id=p.id) }}"
+                            class="d-inline" data-nombre="{{ p.nombre }}"
+                            data-activa="{{ '1' if p.estado == 'Activo' else '0' }}"
+                            onsubmit="return confirmarCambio(this)">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit"
+                                class="btn btn-sm btn-outline-{{ 'warning' if p.estado == 'Activo' else 'success' }}">
+                                <i
+                                    class="bi bi-{{ 'pause-circle' if p.estado == 'Activo' else 'play-circle' }} me-1"></i>
+                                {{ 'Desactivar' if p.estado == 'Activo' else 'Activar' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">No hay proveedores.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+</div>
+
+<script>
+    function confirmarCambio(form) {
+        var nombre = form.dataset.nombre || 'este elemento';
+        if (form.dataset.activa === '1') {
+            return confirm('¿Desactivar "' + nombre + '"?\n\nDejará de aparecer en las listas al registrar facturas. Las facturas anteriores no se modifican.');
+        }
+        return confirm('¿Activar "' + nombre + '" de nuevo?');
+    }
+</script>
+{% endblock %}

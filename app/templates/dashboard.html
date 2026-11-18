@@ -3,7 +3,7 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=3">
 {% endblock %}
 
 {% block body_content %}
@@ -41,15 +41,15 @@
             <ul class="dropdown-menu">
                 <li>
                     <a class="dropdown-item {% if not sucursal_filtro %}active{% endif %}"
-                        href="{{ url_for('dashboard.index') }}">
-                        Todas las sucursales
+                        href="{{ url_for('dashboard.index', periodo=periodo) }}"></a>
+                    Todas las sucursales
                     </a>
                 </li>
                 {% for s in sucursales %}
                 <li>
                     <a class="dropdown-item {% if sucursal_filtro == s.id %}active{% endif %}"
-                        href="{{ url_for('dashboard.index', sucursal=s.id) }}">
-                        {{ s.nombre }}
+                        href="{{ url_for('dashboard.index', sucursal=s.id, periodo=periodo) }}"></a>
+                    {{ s.nombre }}
                     </a>
                 </li>
                 {% endfor %}
@@ -165,11 +165,35 @@
     </section>
     {% endif %}
 
+    {# ---------- Selector de periodo para las graficas ---------- #}
+    <div class="dash-periodo-bar" id="graficas">
+        <div class="dropdown dash-sucursal-dropdown">
+            <button class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-calendar3 icono"></i>
+                <span class="texto">
+                    <span class="label">Gráficas:</span>
+                    <span class="valor">{{ periodos[periodo] }}</span>
+                </span>
+                <i class="bi bi-chevron-down chevron"></i>
+            </button>
+            <ul class="dropdown-menu">
+                {% for clave, nombre in periodos.items() %}
+                <li>
+                    <a class="dropdown-item {% if periodo == clave %}active{% endif %}"
+                        href="{{ url_for('dashboard.index', periodo=clave, sucursal=sucursal_filtro, _anchor='graficas') }}">
+                        {{ nombre }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
     {# ---------- Charts ---------- #}
     <section class="dash-charts">
         <div class="dash-chart-card" id="chartCategoria" data-modo="porcentaje">
             <div class="dash-chart-head">
-                <h2>Facturas por categoría</h2>
+                <h2>Facturas por categoría <small class="dash-periodo-tag">{{ periodos[periodo] }}</small></h2>
                 <div class="dash-toggle" role="group" aria-label="Modo de visualización">
                     <button type="button" class="active" data-modo="porcentaje" aria-pressed="true">
                         <i class="bi bi-percent"></i> Porcentaje
@@ -189,13 +213,15 @@
                         <b class="val-porcentaje">{{ '%.0f'|format(c.porcentaje) }}%</b>
                         <b class="val-monto">${{ '{:,.2f}'.format(c.monto) }}</b>
                     </li>
+                    {% else %}
+                    <li class="text-muted">Sin facturas en este período</li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
 
         <div class="dash-chart-card">
-            <h2>Facturas por día</h2>
+            <h2>Facturas por día <small class="dash-periodo-tag">{{ periodos[periodo] }}</small></h2>
             <svg class="dash-line-svg" viewBox="0 0 560 180" preserveAspectRatio="none">
                 <line x1="0" y1="10" x2="560" y2="10" stroke="#eef1ef" stroke-width="1" />
                 <line x1="0" y1="55" x2="560" y2="55" stroke="#eef1ef" stroke-width="1" />
@@ -205,16 +231,23 @@
                 <polyline points="{{ metricas.linea_puntos }}" fill="none" stroke="#1f6b45" stroke-width="3"
                     stroke-linecap="round" stroke-linejoin="round" />
                 {% for p in metricas.linea_circulos %}
-                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="4" fill="#1f6b45" />
+                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="4" fill="#1f6b45">
+                    <title>{{ p.titulo }}</title>
+                </circle>
                 {% endfor %}
                 {% endif %}
             </svg>
-            <div class="dash-line-days">
-                <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span>
+            {% if metricas.linea_mensaje %}
+            <p class="dash-line-msg">{{ metricas.linea_mensaje }}</p>
+            {% else %}
+            <div class="dash-line-axis">
+                {% for e in metricas.linea_etiquetas %}
+                <span style="left: {{ e.left }}%;">{{ e.texto }}</span>
+                {% endfor %}
             </div>
+            {% endif %}
         </div>
     </section>
-
 </div>
 {% endblock %}
 {% block extra_js %}
