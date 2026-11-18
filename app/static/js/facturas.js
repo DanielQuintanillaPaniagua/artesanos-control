@@ -572,7 +572,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fechaInput = document.getElementById('fecha');
         if (fechaInput && !fechaInput.value) {
-            fechaInput.value = new Date().toISOString().split('T')[0];
+            const hoy = new Date();
+            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoy.getDate()).padStart(2, '0');
+            fechaInput.value = `${hoy.getFullYear()}-${mm}-${dd}`;
         }
 
         const totalInput = document.getElementById('total_factura');
