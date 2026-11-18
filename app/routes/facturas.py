@@ -7,6 +7,7 @@ from app.models.factura import Factura
 from app.models.detalle_factura import DetalleFactura
 from app.models.proveedor import Proveedor
 from app.models.categoria import Categoria
+from app.models.sucursal import Sucursal
 from app.services.validacion import validar_factura
 import math
 
@@ -56,6 +57,29 @@ def _sucursal_activa(user):
         return False, 'Tu sucursal esta inactiva. No podes registrar facturas'
     return True, None
 
+def _resolver_sucursal(user, data):
+    """Devuelve (sucursal_id, error).
+
+    - Owner: elige la sucursal en el formulario (data['sucursal_id']).
+    - Empleado / supervisor: se usa su propia sucursal.
+    """
+    if user.is_owner():
+        try:
+            sucursal_id = int(data.get('sucursal_id'))
+        except (ValueError, TypeError):
+            return None, 'Selecciona la sucursal de la factura'
+
+        sucursal = db.session.get(Sucursal, sucursal_id)
+        if not sucursal:
+            return None, 'La sucursal seleccionada no existe'
+        if (sucursal.estado or '').lower() != 'activa':
+            return None, 'La sucursal seleccionada esta inactiva'
+        return sucursal_id, None
+
+    ok, error = _sucursal_activa(user)
+    if not ok:
+        return None, error
+    return user.sucursal_id, None
 
 def _sanitizar_nombre(nombre):
     """Evita inyeccion de formulas en Excel/CSV."""
@@ -107,14 +131,15 @@ def get_factura(id):
 @bp.route('/', methods=['POST'])
 @login_required
 def create_factura():
-    # 1. Bloquear: empleado con sucursal activa
-    ok, error = _sucursal_activa(current_user)
-    if not ok:
-        return jsonify({'success': False, 'error': error}), 403
-
     data = request.get_json(silent=True)
     if not data:
         return jsonify({'success': False, 'error': 'No se enviaron datos'}), 400
+
+    # 1. Resolver sucursal: owner la elige, los demas usan la suya (debe estar activa)
+    sucursal_id, error = _resolver_sucursal(current_user, data)
+    if error:
+        codigo = 400 if current_user.is_owner() else 403
+        return jsonify({'success': False, 'error': error}), codigo
 
     numero = (data.get('numero_factura') or '').strip()
     proveedor_id = data.get('proveedor_id')
@@ -202,15 +227,15 @@ def create_factura():
         }), 400
 
     # 10. Chequear duplicados: mismo numero_factura + misma sucursal
-    sucursal_id = current_user.sucursal_id
     duplicado = Factura.query.filter_by(
         numero_factura=numero,
         sucursal_id=sucursal_id,
     ).first()
     if duplicado:
+        donde = 'esa sucursal' if current_user.is_owner() else 'tu sucursal'
         return jsonify({
             'success': False,
-            'error': f'Ya existe una factura con el numero "{numero}" en tu sucursal (ID #{duplicado.id}).'
+            'error': f'Ya existe una factura con el numero "{numero}" en {donde} (ID #{duplicado.id}).'
         }), 409
 
     # 11. Crear factura

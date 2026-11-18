@@ -5,6 +5,18 @@
 let _categoriasCache = [];
 let _alertaActual = null;
 const CATEGORIAS_PRINCIPALES = ['Comida', 'Bebida', 'Limpieza'];
+function escapeHtml(texto) {
+    const div = document.createElement('div');
+    div.textContent = texto == null ? '' : String(texto);
+    return div.innerHTML;
+}
+
+function enlazarInputMonto(inp) {
+    inp.addEventListener('input', () => {
+        recalcular();
+        actualizarBadgeOtras();
+    });
+}
 
 
 // ============================================
@@ -80,7 +92,7 @@ async function cargarCategorias() {
 
         contPrincipales.innerHTML = principales.map(c => `
             <div class="categoria-item">
-                <label>${c.nombre}</label>
+                <label>${escapeHtml(c.nombre)}</label>
                 <input type="number" step="0.01" min="0"
                        data-categoria-id="${c.id}"
                        class="monto-input monto-principal"
@@ -90,7 +102,7 @@ async function cargarCategorias() {
 
         contOtras.innerHTML = otras.map(c => `
             <div class="categoria-item">
-                <label>${c.nombre}</label>
+                <label>${escapeHtml(c.nombre)}</label>
                 <input type="number" step="0.01" min="0"
                        data-categoria-id="${c.id}"
                        class="monto-input monto-otras"
@@ -98,12 +110,7 @@ async function cargarCategorias() {
             </div>
         `).join('');
 
-        document.querySelectorAll('.monto-input').forEach(inp => {
-            inp.addEventListener('input', () => {
-                recalcular();
-                actualizarBadgeOtras();
-            });
-        });
+        document.querySelectorAll('.monto-input').forEach(enlazarInputMonto);
 
         recalcular();
         actualizarBadgeOtras();
@@ -235,7 +242,106 @@ async function guardarNuevoProveedor() {
         btnGuardar.innerHTML = '<i class="bi bi-check-lg"></i> Crear proveedor';
     }
 }
+// ============================================
+// CREAR CATEGORIA (solo Owner)
+// ============================================
+function mostrarErrorCategoria(msg) {
+    const err = document.getElementById('error-nueva-categoria');
+    if (!err) return;
+    err.textContent = msg;
+    err.style.display = 'block';
+}
 
+function ocultarErrorCategoria() {
+    const err = document.getElementById('error-nueva-categoria');
+    if (err) err.style.display = 'none';
+}
+
+async function cargarGrupos() {
+    const lista = document.getElementById('lista-grupos');
+    if (!lista) return;
+
+    try {
+        const resp = await fetch('/api/categorias/grupos', { credentials: 'same-origin' });
+        const data = await resp.json();
+        lista.innerHTML = (data.grupos || [])
+            .map(g => `<option value="${escapeHtml(g)}"></option>`)
+            .join('');
+    } catch (err) {
+        console.error('Error grupos:', err);
+    }
+}
+
+async function crearCategoria() {
+    const inpNombre = document.getElementById('nueva-cat-nombre');
+    const inpGrupo = document.getElementById('nueva-cat-grupo');
+    const btn = document.getElementById('btn-crear-categoria');
+    if (!inpNombre || !btn) return;
+
+    const nombre = inpNombre.value.trim();
+    const grupo = inpGrupo ? inpGrupo.value.trim() : '';
+
+    if (nombre.length < 2) {
+        mostrarErrorCategoria('El nombre debe tener al menos 2 caracteres');
+        return;
+    }
+
+    // La nueva categoria queda de ultima en el orden
+    const orden = _categoriasCache.reduce((max, c) => Math.max(max, c.orden || 0), 0) + 1;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Creando...';
+    ocultarErrorCategoria();
+
+    try {
+        const resp = await fetch('/api/categorias/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ nombre, grupo, orden })
+        });
+        const data = await resp.json();
+
+        if (resp.ok && data.success) {
+            const c = data.categoria;
+            _categoriasCache.push(c);
+
+            const grid = document.getElementById('categorias-grid');
+            grid.querySelectorAll(':scope > p').forEach(p => p.remove());
+
+            const item = document.createElement('div');
+            item.className = 'categoria-item';
+            item.innerHTML = `
+                <label>${escapeHtml(c.nombre)}</label>
+                <input type="number" step="0.01" min="0"
+                       data-categoria-id="${c.id}"
+                       class="monto-input monto-otras"
+                       placeholder="0.00">
+            `;
+            grid.appendChild(item);
+
+            const inp = item.querySelector('input');
+            enlazarInputMonto(inp);
+
+            inpNombre.value = '';
+            if (inpGrupo) inpGrupo.value = '';
+            cargarGrupos();
+            mostrarAlerta(`Categoria "${escapeHtml(c.nombre)}" creada`);
+            inp.focus();
+        } else {
+            const msg = (data.errores && data.errores.join('. '))
+                || data.error
+                || 'No se pudo crear la categoria';
+            mostrarErrorCategoria(msg);
+        }
+    } catch (err) {
+        console.error(err);
+        mostrarErrorCategoria('Error de conexion');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plus-lg"></i> Crear';
+    }
+}
 
 // ============================================
 // RECALCULAR EN VIVO
@@ -376,6 +482,10 @@ async function guardarFactura() {
     const detalle = document.getElementById('detalle').value.trim();
     const total_factura = parseFloat(document.getElementById('total_factura').value) || 0;
 
+    // Owner: debe elegir la sucursal (empleado/supervisor usan la suya)
+    const selSucursal = document.getElementById('sucursal_id');
+    if (selSucursal && !selSucursal.value) { mostrarAlerta('Selecciona la sucursal'); return; }
+
     if (!numero) { mostrarAlerta('Ingresa el numero de factura'); return; }
     if (total_factura <= 0) { mostrarAlerta('Ingresa el total de la factura'); return; }
 
@@ -408,6 +518,8 @@ async function guardarFactura() {
         total_factura: total_factura,
         detalles: detalles
     };
+
+    if (selSucursal) datos.sucursal_id = parseInt(selSucursal.value);
 
     // ====== DETECCION OFFLINE ======
     if (!navigator.onLine) {
@@ -487,6 +599,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) cerrarModal();
+            });
+        }
+
+        // Crear categoria (solo Owner: estos elementos solo existen para el)
+        const btnCrearCategoria = document.getElementById('btn-crear-categoria');
+        if (btnCrearCategoria) {
+            btnCrearCategoria.addEventListener('click', crearCategoria);
+            cargarGrupos();
+        }
+
+        const inputNuevaCat = document.getElementById('nueva-cat-nombre');
+        if (inputNuevaCat) {
+            inputNuevaCat.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    crearCategoria();
+                }
             });
         }
 

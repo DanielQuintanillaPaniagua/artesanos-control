@@ -84,9 +84,16 @@ def list_page():
 @bp.route('/new')
 @login_required
 def create_page():
+    # Owner: puede registrar en cualquier sucursal activa (la elige en el formulario)
     if current_user.is_owner():
-        flash('Solo los empleados pueden registrar facturas. Los administradores solo supervisan.', 'warning')
-        return redirect(url_for('facturas_ui.list_page'))
+        from sqlalchemy import func as _sql_func
+        sucursales = (
+            Sucursal.query
+            .filter(_sql_func.lower(Sucursal.estado) == 'activa')
+            .order_by(Sucursal.nombre)
+            .all()
+        )
+        return render_template('facturas/form.html', sucursales=sucursales)
 
     if not current_user.sucursal_id:
         flash('Tu cuenta no tiene una sucursal asignada. Contacta al administrador.', 'danger')

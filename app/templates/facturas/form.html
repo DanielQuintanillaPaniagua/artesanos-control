@@ -3,7 +3,7 @@
 {% block title %}Registrar Factura - ARTESANOS CONTROL{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/facturas.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturas.css') }}?v=2">
 {% endblock %}
 
 {% block body_content %}
@@ -27,6 +27,17 @@
 </div>
 {% endif %}
 
+{% if current_user.is_owner() %}
+<div class="alert alert-success d-flex align-items-center mb-3" role="alert">
+    <i class="bi bi-shield-check me-2"></i>
+    <div>
+        <strong>Como administrador, elige la sucursal a la que pertenece la factura.</strong>
+        Si hay descuadre, la factura quedará como "Observada". También puedes crear categorías nuevas desde "Agregar
+        otras categorías".
+    </div>
+</div>
+{% endif %}
+
 {% if current_user.is_supervisor() %}
 <div class="alert alert-success d-flex align-items-center mb-3" role="alert">
     <i class="bi bi-shield-check me-2"></i>
@@ -40,9 +51,19 @@
 <div class="form-factura">
 
     <div class="form-group">
+        {% if current_user.is_owner() %}
+        <label>Sucursal *</label>
+        <select id="sucursal_id" class="form-control">
+            <option value="">-- Selecciona la sucursal --</option>
+            {% for s in sucursales %}
+            <option value="{{ s.id }}">{{ s.nombre }}</option>
+            {% endfor %}
+        </select>
+        {% else %}
         <label>Sucursal</label>
         <input type="text" class="form-control"
             value="{{ current_user.sucursal.nombre if current_user.sucursal else 'Sin sucursal' }}" readonly>
+        {% endif %}
     </div>
 
     <div class="form-row">
@@ -118,6 +139,22 @@
                 </button>
             </div>
             <div class="modal-body">
+                {% if current_user.is_owner() %}
+                <div class="nueva-categoria-box">
+                    <h5><i class="bi bi-plus-circle"></i> Crear nueva categoría</h5>
+                    <div class="nueva-categoria-row">
+                        <input type="text" id="nueva-cat-nombre" class="form-control" maxlength="80"
+                            placeholder="Nombre de la categoría">
+                        <input type="text" id="nueva-cat-grupo" class="form-control" maxlength="50" list="lista-grupos"
+                            placeholder="Grupo (opcional)">
+                        <datalist id="lista-grupos"></datalist>
+                        <button type="button" class="btn-artesanos" id="btn-crear-categoria">
+                            <i class="bi bi-plus-lg"></i> Crear
+                        </button>
+                    </div>
+                    <div id="error-nueva-categoria" class="error-nueva-categoria" style="display:none;"></div>
+                </div>
+                {% endif %}
                 <div class="categorias-grid" id="categorias-grid">
                     <p class="text-muted">Cargando categorias...</p>
                 </div>
@@ -198,5 +235,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/facturas.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/facturas.js') }}?v=3"></script>
 {% endblock %}
