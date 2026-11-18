@@ -226,6 +226,63 @@
     margin: 0 0 16px;
 }
 
+.dash-chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.dash-chart-head h2 {
+    margin: 0;
+}
+
+/* Boton para alternar porcentaje / monto */
+.dash-toggle {
+    display: inline-flex;
+    background: #f1f4f2;
+    border: 1px solid var(--dash-linea);
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.dash-toggle button {
+    border: 0;
+    background: transparent;
+    color: var(--dash-gris);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: background .15s, color .15s;
+}
+
+.dash-toggle button:hover {
+    color: #1f6b45;
+}
+
+.dash-toggle button.active {
+    background: #1f6b45;
+    color: #fff;
+}
+
+.dash-toggle button:focus-visible {
+    outline: 2px solid #1f6b45;
+    outline-offset: 1px;
+}
+
+/* Mostrar solo el valor del modo activo en la leyenda */
+#chartCategoria[data-modo="porcentaje"] .val-monto,
+#chartCategoria[data-modo="monto"] .val-porcentaje {
+    display: none;
+}
+
 .dash-donut-wrap {
     display: flex;
     align-items: center;
@@ -300,6 +357,7 @@
     .dash-cards {
         grid-template-columns: repeat(2, 1fr);
     }
+
     .dash-charts {
         grid-template-columns: 1fr;
     }
@@ -324,44 +382,53 @@
     min-width: 260px;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
+
 .dash-sucursal-dropdown .btn:hover,
 .dash-sucursal-dropdown .btn:focus {
     border-color: #1f6b45;
     box-shadow: 0 0 0 3px rgba(31, 107, 69, 0.1);
 }
+
 .dash-sucursal-dropdown .btn .icono {
     color: #1f6b45;
     font-size: 1.5rem;
     line-height: 1;
 }
+
 .dash-sucursal-dropdown .btn .texto {
     display: flex;
     flex-direction: column;
     line-height: 1.2;
     flex-grow: 1;
 }
+
 .dash-sucursal-dropdown .btn .texto .label {
     font-size: 0.75rem;
     color: #6b7688;
 }
+
 .dash-sucursal-dropdown .btn .texto .valor {
     font-size: 1rem;
     color: #16243a;
     font-weight: 500;
 }
+
 .dash-sucursal-dropdown .btn::after {
     display: none;
 }
+
 .dash-sucursal-dropdown .btn .chevron {
     color: #6b7688;
     font-size: 0.9rem;
 }
+
 .dash-sucursal-dropdown .dropdown-menu {
     min-width: 260px;
     border-radius: 10px;
     border: 1px solid #e5e9e6;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
 .dash-sucursal-dropdown .dropdown-item.active {
     background-color: #1f6b45;
     color: #fff;
@@ -380,44 +447,53 @@
     min-width: 260px;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
+
 .dash-sucursal-dropdown .btn:hover,
 .dash-sucursal-dropdown .btn:focus {
     border-color: #1f6b45;
     box-shadow: 0 0 0 3px rgba(31, 107, 69, 0.1);
 }
+
 .dash-sucursal-dropdown .btn .icono {
     color: #1f6b45;
     font-size: 1.5rem;
     line-height: 1;
 }
+
 .dash-sucursal-dropdown .btn .texto {
     display: flex;
     flex-direction: column;
     line-height: 1.2;
     flex-grow: 1;
 }
+
 .dash-sucursal-dropdown .btn .texto .label {
     font-size: 0.75rem;
     color: #6b7688;
 }
+
 .dash-sucursal-dropdown .btn .texto .valor {
     font-size: 1rem;
     color: #16243a;
     font-weight: 500;
 }
+
 .dash-sucursal-dropdown .btn::after {
     display: none;
 }
+
 .dash-sucursal-dropdown .btn .chevron {
     color: #6b7688;
     font-size: 0.9rem;
 }
+
 .dash-sucursal-dropdown .dropdown-menu {
     min-width: 260px;
     border-radius: 10px;
     border: 1px solid #e5e9e6;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
 .dash-sucursal-dropdown .dropdown-item.active {
     background-color: #1f6b45;
     color: #fff;
@@ -427,7 +503,8 @@
    REPORTES Y ACCIONES RAPIDAS - Cards
    ============================================ */
 
-.reporte-card, .accion-card {
+.reporte-card,
+.accion-card {
     display: flex;
     align-items: flex-start;
     gap: 12px;
@@ -442,14 +519,16 @@
     height: 100%;
 }
 
-.reporte-card:hover, .accion-card:hover {
+.reporte-card:hover,
+.accion-card:hover {
     border-color: var(--dash-verde-600);
     box-shadow: 0 2px 8px rgba(31, 107, 69, 0.1);
     transform: translateY(-1px);
     color: inherit;
 }
 
-.reporte-ico, .accion-ico {
+.reporte-ico,
+.accion-ico {
     width: 36px;
     height: 36px;
     border-radius: 8px;
@@ -467,20 +546,23 @@
     color: #2f6f8f;
 }
 
-.reporte-titulo, .accion-titulo {
+.reporte-titulo,
+.accion-titulo {
     font-weight: 600;
     font-size: 13.5px;
     color: var(--dash-tinta);
     margin-bottom: 2px;
 }
 
-.reporte-desc, .accion-desc {
+.reporte-desc,
+.accion-desc {
     font-size: 11.5px;
     color: var(--dash-gris);
     line-height: 1.3;
 }
 
-.reporte-arrow, .accion-arrow {
+.reporte-arrow,
+.accion-arrow {
     position: absolute;
     right: 12px;
     top: 50%;
@@ -491,7 +573,8 @@
     transition: all 0.15s;
 }
 
-.reporte-card:hover .reporte-arrow, .accion-card:hover .accion-arrow {
+.reporte-card:hover .reporte-arrow,
+.accion-card:hover .accion-arrow {
     color: var(--dash-verde-600);
     opacity: 1;
     right: 8px;

@@ -167,15 +167,27 @@
 
     {# ---------- Charts ---------- #}
     <section class="dash-charts">
-        <div class="dash-chart-card">
-            <h2>Facturas por categoría</h2>
+        <div class="dash-chart-card" id="chartCategoria" data-modo="porcentaje">
+            <div class="dash-chart-head">
+                <h2>Facturas por categoría</h2>
+                <div class="dash-toggle" role="group" aria-label="Modo de visualización">
+                    <button type="button" class="active" data-modo="porcentaje" aria-pressed="true">
+                        <i class="bi bi-percent"></i> Porcentaje
+                    </button>
+                    <button type="button" data-modo="monto" aria-pressed="false">
+                        <i class="bi bi-currency-dollar"></i> Monto
+                    </button>
+                </div>
+            </div>
             <div class="dash-donut-wrap">
                 <div class="dash-donut" style="background: {{ metricas.donut_gradient }};"></div>
                 <ul class="dash-legend">
                     {% for c in metricas.por_categoria %}
                     <li>
                         <span class="dash-dot" style="background: {{ c.color }};"></span>
-                        {{ c.nombre }} <b>{{ '%.0f'|format(c.porcentaje) }}%</b>
+                        {{ c.nombre }}
+                        <b class="val-porcentaje">{{ '%.0f'|format(c.porcentaje) }}%</b>
+                        <b class="val-monto">${{ '{:,.2f}'.format(c.monto) }}</b>
                     </li>
                     {% endfor %}
                 </ul>
@@ -204,4 +216,36 @@
     </section>
 
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    (function () {
+        var card = document.getElementById('chartCategoria');
+        if (!card) return;
+        var botones = card.querySelectorAll('.dash-toggle button');
+        var KEY = 'dashCategoriaModo';
+
+        function aplicar(modo) {
+            card.setAttribute('data-modo', modo);
+            botones.forEach(function (b) {
+                var activo = b.getAttribute('data-modo') === modo;
+                b.classList.toggle('active', activo);
+                b.setAttribute('aria-pressed', activo ? 'true' : 'false');
+            });
+        }
+
+        botones.forEach(function (b) {
+            b.addEventListener('click', function () {
+                var modo = b.getAttribute('data-modo');
+                aplicar(modo);
+                try { localStorage.setItem(KEY, modo); } catch (e) { }
+            });
+        });
+
+        try {
+            var guardado = localStorage.getItem(KEY);
+            if (guardado === 'monto' || guardado === 'porcentaje') aplicar(guardado);
+        } catch (e) { }
+    })();
+</script>
 {% endblock %}
