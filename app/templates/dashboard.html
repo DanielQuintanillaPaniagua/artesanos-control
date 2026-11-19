@@ -3,7 +3,7 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=5">
 {% endblock %}
 
 {% block body_content %}
@@ -40,16 +40,16 @@
             </button>
             <ul class="dropdown-menu">
                 <li>
-                    <a class="dropdown-item {% if not sucursal_filtro %}active{% endif %}"
-                        href="{{ url_for('dashboard.index', periodo=periodo) }}"></a>
-                    Todas las sucursales
+                    <a class="dropdown-item {% if not sucursal_filtro %}sel{% endif %}"
+                        href="{{ url_for('dashboard.index', periodo=periodo) }}">
+                        Todas las sucursales
                     </a>
                 </li>
                 {% for s in sucursales %}
                 <li>
-                    <a class="dropdown-item {% if sucursal_filtro == s.id %}active{% endif %}"
-                        href="{{ url_for('dashboard.index', sucursal=s.id, periodo=periodo) }}"></a>
-                    {{ s.nombre }}
+                    <a class="dropdown-item {% if sucursal_filtro == s.id %}sel{% endif %}"
+                        href="{{ url_for('dashboard.index', sucursal=s.id, periodo=periodo) }}">
+                        {{ s.nombre }}
                     </a>
                 </li>
                 {% endfor %}
@@ -179,7 +179,7 @@
             <ul class="dropdown-menu">
                 {% for clave, nombre in periodos.items() %}
                 <li>
-                    <a class="dropdown-item {% if periodo == clave %}active{% endif %}"
+                    <a class="dropdown-item {% if periodo == clave %}sel{% endif %}"
                         href="{{ url_for('dashboard.index', periodo=clave, sucursal=sucursal_filtro, _anchor='graficas') }}">
                         {{ nombre }}
                     </a>
