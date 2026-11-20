@@ -5,6 +5,7 @@
 {# AJUSTAR los nombres de bloque a los que use base.html (content / extra_css / scripts) #}
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/editar_factura.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/select-buscable.css') }}?v=1">
 {% endblock %}
 
 {% block body_content %}
@@ -19,7 +20,7 @@
         <div class="row g-3">
             <div class="col-sm-6">
                 <label class="form-label" for="proveedor">Proveedor</label>
-                <select id="proveedor" class="form-select">
+                <select id="proveedor" class="form-select" data-buscable="Buscar proveedor...">
                     {% for p in proveedores %}
                     <option value="{{ p.id }}" {{ 'selected' if p.id==factura.proveedor_id }}>{{ p.nombre }}</option>
                     {% endfor %}
@@ -127,5 +128,6 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{{ url_for('static', filename='js/select-buscable.js') }}?v=1"></script>
 <script src="{{ url_for('static', filename='js/editar_factura.js') }}"></script>
 {% endblock %}

@@ -57,6 +57,7 @@ def _sucursal_activa(user):
         return False, 'Tu sucursal esta inactiva. No podes registrar facturas'
     return True, None
 
+
 def _resolver_sucursal(user, data):
     """Devuelve (sucursal_id, error).
 
@@ -80,6 +81,7 @@ def _resolver_sucursal(user, data):
     if not ok:
         return None, error
     return user.sucursal_id, None
+
 
 def _sanitizar_nombre(nombre):
     """Evita inyeccion de formulas en Excel/CSV."""
@@ -390,7 +392,7 @@ def create_proveedor():
     nombre = _sanitizar_nombre(nombre)
 
     existente = Proveedor.query.filter(
-        Proveedor.nombre.ilike(nombre)
+        db.func.lower(Proveedor.nombre) == nombre.lower()
     ).first()
     if existente:
         return jsonify({

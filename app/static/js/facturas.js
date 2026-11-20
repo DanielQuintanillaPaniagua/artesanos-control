@@ -5,6 +5,7 @@
 let _categoriasCache = [];
 let _alertaActual = null;
 const CATEGORIAS_PRINCIPALES = ['Comida', 'Bebida', 'Limpieza'];
+
 function escapeHtml(texto) {
     const div = document.createElement('div');
     div.textContent = texto == null ? '' : String(texto);
@@ -200,7 +201,12 @@ async function cargarProveedores() {
 // ============================================
 // GUARDAR NUEVO PROVEEDOR
 // ============================================
+let guardandoProveedor = false;
+
 async function guardarNuevoProveedor() {
+    // Evita doble envio (doble clic / clic + Enter) que creaba el proveedor duplicado
+    if (guardandoProveedor) return;
+
     const nombre = document.getElementById('nuevo-prov-nombre').value.trim();
     const telefono = document.getElementById('nuevo-prov-telefono').value.trim();
     const email = document.getElementById('nuevo-prov-email').value.trim();
@@ -210,6 +216,7 @@ async function guardarNuevoProveedor() {
         return;
     }
 
+    guardandoProveedor = true;
     const btnGuardar = document.getElementById('btn-guardar-proveedor');
     btnGuardar.disabled = true;
     btnGuardar.innerHTML = '<i class="bi bi-hourglass-split"></i> Creando...';
@@ -238,10 +245,13 @@ async function guardarNuevoProveedor() {
         console.error(err);
         mostrarErrorProveedor('Error de conexion');
     } finally {
+        guardandoProveedor = false;
         btnGuardar.disabled = false;
         btnGuardar.innerHTML = '<i class="bi bi-check-lg"></i> Crear proveedor';
     }
 }
+
+
 // ============================================
 // CREAR CATEGORIA (solo Owner)
 // ============================================
@@ -342,6 +352,7 @@ async function crearCategoria() {
         btn.innerHTML = '<i class="bi bi-plus-lg"></i> Crear';
     }
 }
+
 
 // ============================================
 // RECALCULAR EN VIVO
@@ -572,10 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fechaInput = document.getElementById('fecha');
         if (fechaInput && !fechaInput.value) {
-            const hoy = new Date();
-            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-            const dd = String(hoy.getDate()).padStart(2, '0');
-            fechaInput.value = `${hoy.getFullYear()}-${mm}-${dd}`;
+            fechaInput.value = new Date().toISOString().split('T')[0];
         }
 
         const totalInput = document.getElementById('total_factura');

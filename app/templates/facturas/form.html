@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/facturas.css') }}?v=2">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/select-buscable.css') }}?v=1">
 {% endblock %}
 
 {% block body_content %}
@@ -70,7 +71,7 @@
         <div class="form-group">
             <label>Proveedor</label>
             <div class="proveedor-input-group">
-                <select id="proveedor_id" class="form-control">
+                <select id="proveedor_id" class="form-control" data-buscable="Buscar proveedor...">
                     <option value="">-- Selecciona un proveedor --</option>
                 </select>
                 {% if current_user.is_owner() or current_user.is_supervisor() %}
@@ -196,8 +197,7 @@
             <div class="modal-footer">
                 <button type="button" class="btn-cancelar" id="btn-cancelar-proveedor"
                     onclick="cerrarModalProveedor()">Cancelar</button>
-                <button type="button" class="btn-artesanos" id="btn-guardar-proveedor"
-                    onclick="guardarNuevoProveedor()">
+                <button type="button" class="btn-artesanos" id="btn-guardar-proveedor">
                     <i class="bi bi-check-lg"></i> Crear proveedor
                 </button>
             </div>
@@ -234,5 +234,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/facturas.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='js/select-buscable.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='js/facturas.js') }}?v=5"></script>
 {% endblock %}
