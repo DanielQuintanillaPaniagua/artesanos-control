@@ -7,6 +7,7 @@ from app import db
 from app.models.factura import Factura
 from app.models.proveedor import Proveedor
 from app.models.sucursal import Sucursal
+from app.models.tipo_documento import TipoDocumento
 
 bp = Blueprint('facturas_ui', __name__, url_prefix='/facturas')
 
@@ -93,7 +94,8 @@ def create_page():
             .order_by(Sucursal.nombre)
             .all()
         )
-        return render_template('facturas/form.html', sucursales=sucursales)
+        return render_template('facturas/form.html', sucursales=sucursales,
+                               tipos_documento=TipoDocumento.activos())
 
     if not current_user.sucursal_id:
         flash('Tu cuenta no tiene una sucursal asignada. Contacta al administrador.', 'danger')
@@ -103,7 +105,7 @@ def create_page():
         flash('Tu sucursal esta inactiva. No podes registrar facturas.', 'danger')
         return redirect(url_for('facturas_ui.list_page'))
 
-    return render_template('facturas/form.html')
+    return render_template('facturas/form.html', tipos_documento=TipoDocumento.activos())
 
 
 @bp.route('/<int:factura_id>')

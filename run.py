@@ -13,6 +13,8 @@ if not app.config.get('SECRET_KEY'):
 
 with app.app_context():
     db.create_all()
+    from app.models.tipo_documento import TipoDocumento
+    TipoDocumento.asegurar_base()
     print("Base de datos inicializada")
 
 

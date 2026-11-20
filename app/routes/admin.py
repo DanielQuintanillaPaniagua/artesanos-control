@@ -469,6 +469,7 @@ def sucursal_toggle_estado(sucursal_id):
     flash(f'Sucursal "{s.nombre}" ahora esta {s.estado.lower()}.', 'success')
     return redirect(url_for('admin.sucursales'))
 
+
 # ==================================================
 # CATEGORIAS Y PROVEEDORES (activar / desactivar) - SOLO OWNER
 # ==================================================
@@ -478,9 +479,12 @@ def catalogo():
     _solo_owner()
     from app.models.categoria import Categoria
     from app.models.proveedor import Proveedor
+    from app.models.tipo_documento import TipoDocumento
 
+    TipoDocumento.asegurar_base()
     categorias = Categoria.query.order_by(Categoria.estado, Categoria.orden, Categoria.nombre).all()
     proveedores = Proveedor.query.order_by(Proveedor.estado, Proveedor.nombre).all()
+    tipos_documento = TipoDocumento.query.order_by(TipoDocumento.estado, TipoDocumento.id).all()
 
     # Cuantas facturas usan cada una (informativo)
     uso_cat = dict(
@@ -492,12 +496,19 @@ def catalogo():
         .group_by(Factura.proveedor_id).all()
     )
 
+    uso_tipo = dict(
+        db.session.query(Factura.tipo_documento, db.func.count(Factura.id))
+        .group_by(Factura.tipo_documento).all()
+    )
+
     return render_template(
         'admin/catalogo.html',
         categorias=categorias,
         proveedores=proveedores,
+        tipos_documento=tipos_documento,
         uso_cat=uso_cat,
         uso_prov=uso_prov,
+        uso_tipo=uso_tipo,
     )
 
 
@@ -527,6 +538,62 @@ def proveedor_toggle_estado(proveedor_id):
 
     flash(f'Proveedor "{p.nombre}" ahora esta {p.estado.lower()}.', 'success')
     return redirect(url_for('admin.catalogo') + '#proveedores')
+
+
+@bp.route('/tipos-documento/crear', methods=['POST'])
+@login_required
+def tipo_documento_crear():
+    _solo_owner()
+    from app.models.tipo_documento import TipoDocumento
+
+    etiqueta = ' '.join((request.form.get('etiqueta') or '').split())
+    codigo = ' '.join((request.form.get('codigo') or '').split()).upper()
+
+    if not etiqueta:
+        flash('Escribe el nombre del tipo de documento.', 'danger')
+        return redirect(url_for('admin.catalogo') + '#tipos-documento')
+    if len(etiqueta) > 80:
+        flash('El nombre es muy largo (maximo 80 caracteres).', 'danger')
+        return redirect(url_for('admin.catalogo') + '#tipos-documento')
+
+    # Si no escribe codigo, se usa el nombre en mayusculas
+    if not codigo:
+        codigo = etiqueta.upper()
+    if len(codigo) > 30:
+        flash('El codigo es muy largo (maximo 30 caracteres). Escribe un codigo corto, por ejemplo CCF.', 'danger')
+        return redirect(url_for('admin.catalogo') + '#tipos-documento')
+
+    TipoDocumento.asegurar_base()
+    # Comparacion en Python (la tabla es chica) para que acentos/mayusculas funcionen igual en MySQL y SQLite
+    existente = next(
+        (t for t in TipoDocumento.query.all()
+         if t.codigo.upper() == codigo or t.etiqueta.casefold() == etiqueta.casefold()),
+        None,
+    )
+    if existente:
+        flash(f'Ya existe un tipo de documento "{existente.etiqueta}" ({existente.codigo}).', 'warning')
+        return redirect(url_for('admin.catalogo') + '#tipos-documento')
+
+    db.session.add(TipoDocumento(codigo=codigo, etiqueta=etiqueta, estado='Activo'))
+    db.session.commit()
+
+    flash(f'Tipo de documento "{etiqueta}" creado. Ya aparece al registrar facturas.', 'success')
+    return redirect(url_for('admin.catalogo') + '#tipos-documento')
+
+
+@bp.route('/tipos-documento/<int:tipo_id>/toggle-estado', methods=['POST'])
+@login_required
+def tipo_documento_toggle_estado(tipo_id):
+    _solo_owner()
+    from app.models.tipo_documento import TipoDocumento
+    t = TipoDocumento.query.get_or_404(tipo_id)
+
+    t.estado = 'Inactivo' if t.estado == 'Activo' else 'Activo'
+    db.session.commit()
+
+    flash(f'Tipo de documento "{t.etiqueta}" ahora esta {t.estado.lower()}.', 'success')
+    return redirect(url_for('admin.catalogo') + '#tipos-documento')
+
 
 # ==================================================
 # REPORTES CSV

@@ -99,10 +99,9 @@
             <label>Tipo de documento</label>
             <select id="tipo_documento" class="form-control">
                 <option value="">-- Selecciona --</option>
-                <option value="FCC">FCC (Factura Consumidor Final)</option>
-                <option value="FC">FC (Factura Comercial)</option>
-                <option value="NOTA DE ENVIO">Nota de envio</option>
-                <option value="OTROS">Otros</option>
+                {% for t in tipos_documento %}
+                <option value="{{ t.codigo }}">{{ t.etiqueta }}</option>
+                {% endfor %}
             </select>
         </div>
     </div>

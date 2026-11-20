@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Categorías y proveedores{% endblock %}
+{% block title %}Catálogo{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=5">
 {% endblock %}
 
 {% block body_content %}
@@ -11,7 +11,7 @@
 
     <div class="dash-head">
         <div>
-            <h1><i class="bi bi-tags me-2"></i>Categorías y proveedores</h1>
+            <h1><i class="bi bi-tags me-2"></i>Categorías, proveedores y tipos de documento</h1>
             <p>Desactiva las que ya no uses: dejan de aparecer en las listas, pero las facturas anteriores conservan sus
                 datos.</p>
         </div>
@@ -19,6 +19,80 @@
             <i class="bi bi-arrow-left me-1"></i>Volver a administración
         </a>
     </div>
+
+    {# ---------- Tipos de documento ---------- #}
+    <section class="dash-panel mb-4" id="tipos-documento">
+        <div class="dash-panel-head">
+            <h2><i class="bi bi-file-earmark-text me-2"></i>Tipos de documento</h2>
+            <span class="tag">{{ tipos_documento|selectattr('estado', 'equalto', 'Activo')|list|length }} activos de {{
+                tipos_documento|length }}</span>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin.tipo_documento_crear') }}" class="row g-2 align-items-end p-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-12 col-md-5">
+                <label class="form-label mb-1" for="td-etiqueta">Nombre (lo que ve el usuario)</label>
+                <input type="text" id="td-etiqueta" name="etiqueta" class="form-control" maxlength="80"
+                    placeholder="Ej: CCF (Crédito Fiscal)" required>
+            </div>
+            <div class="col-12 col-md-4">
+                <label class="form-label mb-1" for="td-codigo">Código (se guarda y sale en el Excel)</label>
+                <input type="text" id="td-codigo" name="codigo" class="form-control" maxlength="30"
+                    placeholder="Ej: CCF (opcional)">
+            </div>
+            <div class="col-12 col-md-3">
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Crear tipo
+                </button>
+            </div>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Código</th>
+                    <th>Facturas</th>
+                    <th>Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tipos_documento %}
+                <tr {% if t.estado !='Activo' %}class="text-muted" {% endif %}>
+                    <td><span class="dash-suc-name">{{ t.etiqueta }}</span></td>
+                    <td>{{ t.codigo }}</td>
+                    <td>{{ uso_tipo.get(t.codigo, 0) }}</td>
+                    <td>
+                        {% if t.estado == 'Activo' %}
+                        <span class="badge bg-success-subtle text-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary">Desactivado</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <form method="POST" action="{{ url_for('admin.tipo_documento_toggle_estado', tipo_id=t.id) }}"
+                            class="d-inline" data-nombre="{{ t.etiqueta }}"
+                            data-activa="{{ '1' if t.estado == 'Activo' else '0' }}"
+                            onsubmit="return confirmarCambio(this)">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit"
+                                class="btn btn-sm btn-outline-{{ 'warning' if t.estado == 'Activo' else 'success' }}">
+                                <i
+                                    class="bi bi-{{ 'pause-circle' if t.estado == 'Activo' else 'play-circle' }} me-1"></i>
+                                {{ 'Desactivar' if t.estado == 'Activo' else 'Activar' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">No hay tipos de documento.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
 
     {# ---------- Categorias ---------- #}
     <section class="dash-panel mb-4" id="categorias">
