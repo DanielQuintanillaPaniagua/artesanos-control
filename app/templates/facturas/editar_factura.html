@@ -22,7 +22,8 @@
                 <label class="form-label" for="proveedor">Proveedor</label>
                 <select id="proveedor" class="form-select" data-buscable="Buscar proveedor...">
                     {% for p in proveedores %}
-                    <option value="{{ p.id }}" {{ 'selected' if p.id==factura.proveedor_id }}>{{ p.nombre }}</option>
+                    <option value="{{ p.id }}" {{ 'selected' if p.id==factura.proveedor_id }}>{{ p.nombre }}{% if
+                        p.estado != 'Activo' %} (desactivado){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>

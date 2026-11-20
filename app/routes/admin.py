@@ -1043,7 +1043,7 @@ def importar_excel():
         # se saltea para evitar duplicar al reimportar.
         importadas = 0
         salteadas = 0
-        proveedores_creados = 0
+        con_proveedor = 0
 
         for f_data in data:
             # Chequear duplicado
@@ -1058,25 +1058,24 @@ def importar_excel():
                 salteadas += 1
                 continue
 
-            # Buscar o crear proveedor
+            # Buscar proveedor EXISTENTE (nombre exacto, sin importar mayusculas).
+            # NO se crean proveedores nuevos: la columna "Detalle" del Excel mezcla
+            # proveedor y descripcion en texto libre (ej. "FACTURA COMERCIAL(pupusas)"),
+            # y crear proveedores a partir de ese texto llenaba la lista de basura.
+            # Si no hay coincidencia, la factura queda sin proveedor y el texto
+            # original se conserva en el campo "detalle".
             proveedor = None
             if f_data['detalle']:
                 nombre_prov = f_data['detalle'].split(' - ')[0].strip()[:150]
                 if nombre_prov:
-                    proveedor = Proveedor.query.filter(
-                        Proveedor.nombre.ilike(nombre_prov)
-                    ).first()
-                    if not proveedor:
-                        # Sanitizar nombre (evita formulas en Excel)
-                        if nombre_prov and nombre_prov[0] in ('=', '+', '-', '@', '\t', '\r'):
-                            nombre_prov = "'" + nombre_prov
-                        proveedor = Proveedor(
-                            nombre=nombre_prov,
-                            estado='Activo',
-                        )
-                        db.session.add(proveedor)
-                        db.session.flush()
-                        proveedores_creados += 1
+                    proveedor = (
+                        Proveedor.query
+                        .filter(db.func.lower(Proveedor.nombre) == nombre_prov.lower())
+                        .order_by(db.case((Proveedor.estado == 'Activo', 0), else_=1), Proveedor.id)
+                        .first()
+                    )
+            if proveedor:
+                con_proveedor += 1
 
             # Crear factura
             factura = Factura(
@@ -1113,7 +1112,8 @@ def importar_excel():
         resultado = {
             'importadas': importadas,
             'salteadas': salteadas,
-            'proveedores_creados': proveedores_creados,
+            'con_proveedor': con_proveedor,
+            'sin_proveedor': importadas - con_proveedor,
             'total_filas': resumen.get('total_filas', 0),
             'sin_fecha': resumen.get('sin_fecha', 0),
             'sin_monto': resumen.get('sin_monto', 0),
