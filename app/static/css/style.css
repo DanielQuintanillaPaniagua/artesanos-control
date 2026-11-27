@@ -170,9 +170,11 @@ body.bg-artesanos {
     .login-container {
         padding: 40px 24px;
     }
+
     .login-title {
         font-size: 1.8rem;
     }
+
     .login-logo {
         max-width: 180px;
     }
@@ -222,8 +224,13 @@ body.bg-artesanos {
 }
 
 @keyframes slideDown {
-    from { transform: translateY(-100%); }
-    to { transform: translateY(0); }
+    from {
+        transform: translateY(-100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
 }
 
 /* Cuando hay banner, empujar contenido */
@@ -267,44 +274,54 @@ input[type="number"] {
     min-width: 280px;
     transition: border-color 0.15s, box-shadow 0.15s;
 }
+
 .sucursal-dropdown .btn:hover,
 .sucursal-dropdown .btn:focus {
     border-color: #0b5d3b;
     box-shadow: 0 0 0 3px rgba(11, 93, 59, 0.1);
 }
+
 .sucursal-dropdown .btn .icono {
     color: #0b5d3b;
     font-size: 1.5rem;
     line-height: 1;
 }
+
 .sucursal-dropdown .btn .texto {
     display: flex;
     flex-direction: column;
     line-height: 1.2;
     flex-grow: 1;
 }
+
 .sucursal-dropdown .btn .texto .label {
     font-size: 0.75rem;
     color: #6c757d;
 }
+
 .sucursal-dropdown .btn .texto .valor {
     font-size: 1rem;
     color: #212529;
     font-weight: 500;
 }
+
 .sucursal-dropdown .btn::after {
-    display: none; /* quitamos la flechita default de Bootstrap */
+    display: none;
+    /* quitamos la flechita default de Bootstrap */
 }
+
 .sucursal-dropdown .btn .chevron {
     color: #6c757d;
     font-size: 0.9rem;
 }
+
 .sucursal-dropdown .dropdown-menu {
     min-width: 280px;
     border-radius: 10px;
     border: 1px solid #e0e0e0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
 .sucursal-dropdown .dropdown-item.active {
     background-color: #0b5d3b;
     color: #fff;
@@ -488,4 +505,111 @@ input[type="number"] {
 .auth-card .alert-warning {
     background: #fef3c7;
     color: #92400e;
+}
+
+/* ===== Pie de pagina ===== */
+.artesanos-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.artesanos-content> :not(.app-footer) {
+    flex-shrink: 0;
+}
+
+.artesanos-content> :nth-last-child(2) {
+    margin-bottom: 24px;
+}
+
+.app-footer {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    padding: 12px 20px;
+    background: #fff;
+    border: 1px solid #e5e9e6;
+    border-top: 3px solid #1f6b45;
+    border-radius: 12px;
+    color: #6b7688;
+    font-size: 0.78rem;
+}
+
+.app-footer-marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.app-footer-ico {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: #e7f3ec;
+    color: #1f6b45;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.app-footer-marca div {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.app-footer-marca strong {
+    color: #143d2e;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.app-footer-marca small {
+    color: #8a94a3;
+    font-size: 0.72rem;
+}
+
+.app-footer-centro {
+    color: #6b7688;
+}
+
+.app-footer-centro .sep {
+    margin: 0 6px;
+    color: #c3cbc6;
+}
+
+.app-footer-der {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.app-footer-ver {
+    background: #e7f3ec;
+    color: #1f6b45;
+    font-weight: 600;
+    font-size: 0.72rem;
+    padding: 2px 10px;
+    border-radius: 999px;
+}
+
+@media (max-width: 768px) {
+    .app-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Paginas que ocupan toda la altura (Artesanos AI y Chat): restar el pie */
+.artesanos-content:has(.ai-page) .ai-page {
+    height: calc(100vh - 48px - 92px) !important;
+    max-height: calc(100vh - 48px - 92px) !important;
+}
+
+.artesanos-content:has(.chat-layout) .chat-layout {
+    height: calc(100vh - 60px - 92px);
 }
