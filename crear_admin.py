@@ -1,6 +1,7 @@
 ﻿# crear_admin.py
 # Script de inicializacion de ARTESANOS CONTROL
 # Crea unicamente:
+#   - las tablas de la base de datos (si no existen)
 #   - 1 sucursal base
 #   - 1 usuario owner
 #   - 21 categorias del Excel (necesarias para el sistema)
@@ -16,6 +17,14 @@ with app.app_context():
     print("=" * 60)
     print("INICIALIZANDO ARTESANOS CONTROL")
     print("=" * 60)
+
+    # ===== 0. TABLAS =====
+    # Crea las tablas que falten (no borra ni modifica las existentes)
+    # y los tipos de documento base (FCC, FC, Nota de envio, Otros).
+    from app.models.tipo_documento import TipoDocumento
+    db.create_all()
+    TipoDocumento.asegurar_base()
+    print("\n[0/3] Tablas verificadas")
 
     # ===== 1. SUCURSAL BASE =====
     print("\n[1/3] Creando sucursal base...")
